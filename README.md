@@ -150,3 +150,12 @@ Ejecutado en Windows 11, Node 24.21:
 Sincronización opcional cifrada de extremo a extremo (reutilizando el formato de la copia cifrada; requiere servidor y base de datos, ~US$7/mes en Render), notificaciones push, informes PDF, idioma inglés (extraer todos los textos a `i18n`), importación con fusión, análisis de patrones con explicaciones transparentes, modo de acompañamiento para reducción. Cualquier función de IA debería ser opcional, explicar sus límites y no enviar el historial a terceros sin consentimiento explícito.
 
 Ver también [PRODUCT_SPEC.md](PRODUCT_SPEC.md).
+
+## App Android (APK)
+
+`android/` es una **Trusted Web Activity** generada con Bubblewrap (paquete `app.fumometro.twa`, minSdk 24): abre https://fumometro.onrender.com a pantalla completa y se actualiza sola con cada deploy del sitio. [`public/.well-known/assetlinks.json`](public/.well-known/assetlinks.json) vincula la app con el sitio mediante la huella SHA-256 de la clave de firma.
+
+- La clave de firma **no está en el repo**: vive en `%USERPROFILE%\.fumometro-android\firma\` (keystore + contraseña). Hay que respaldarla: sin ella no se puede publicar una versión nueva del APK que se instale encima de la anterior.
+- Compilar y firmar (Windows): `%USERPROFILE%\.fumometro-android\tools\compilar.ps1` y luego `firmar.ps1`. Dejan `Fumometro.apk` en la raíz del proyecto (ignorado por git).
+- `compilar.ps1` reintenta copiando los workspaces de Gradle que el antivirus deja bloqueados («Could not move temporary workspace»).
+- Solo hace falta un APK nuevo si cambia el nombre, el ícono o el paquete; los cambios de la app llegan con el deploy web.
