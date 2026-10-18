@@ -1,0 +1,172 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/space-grotesk';
+@import 'tailwindcss';
+
+/*
+ * Tokens de diseño de Ritmo.
+ * Tema oscuro único (carbón + grafito), acento lima controlado, cian secundario.
+ * Todos los colores de texto cumplen ≥ 4.5:1 sobre sus superficies.
+ */
+@theme {
+  /* Color */
+  --color-bg: #0b0c0e;
+  --color-surface: #121417;
+  --color-surface-2: #181b1f;
+  --color-surface-3: #20242a;
+  --color-border: #272b31;
+  --color-border-strong: #383d45;
+  --color-fg: #eceef1;
+  --color-fg-muted: #a7adb5;
+  --color-fg-subtle: #858c95;
+  --color-accent: #b6f36a;
+  --color-accent-hover: #c9fb87;
+  --color-accent-ink: #0d1404;
+  --color-accent-soft: rgb(182 243 106 / 0.12);
+  --color-cyan: #6fd6ec;
+  --color-cyan-soft: rgb(111 214 236 / 0.12);
+  --color-warn: #f0c35a;
+  --color-warn-soft: rgb(240 195 90 / 0.12);
+  --color-danger: #ff8a80;
+  --color-danger-soft: rgb(255 138 128 / 0.12);
+
+  /* Tipografía */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.78rem;
+  --text-xs--line-height: 1.1rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Sombras: profundidad discreta, sin glow */
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px -16px rgb(0 0 0 / 0.8);
+  --shadow-pop: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 48px -12px rgb(0 0 0 / 0.75);
+
+  /* Breakpoints */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+
+  /* Movimiento */
+  --ease-out-quick: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --space-gutter: 1rem;
+    --nav-h: 4.25rem;
+  }
+  html {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  body {
+    min-height: 100dvh;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, rgb(182 243 106 / 0.05), transparent 60%),
+      var(--color-bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: rgb(182 243 106 / 0.3);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  input[type='datetime-local']::-webkit-calendar-picker-indicator,
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+}
+
+@layer components {
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+  .field-input {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-fg);
+    transition:
+      border-color 120ms var(--ease-out-quick),
+      background 120ms var(--ease-out-quick);
+  }
+  .field-input:hover {
+    border-color: #4a505a;
+  }
+  .field-input:focus-visible {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgb(182 243 106 / 0.18);
+  }
+  .field-input[aria-invalid='true'] {
+    border-color: var(--color-danger);
+  }
+  .field-input::placeholder {
+    color: var(--color-fg-subtle);
+  }
+  .eyebrow {
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle);
+    font-weight: 600;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 220ms var(--ease-out-quick) both;
+}
