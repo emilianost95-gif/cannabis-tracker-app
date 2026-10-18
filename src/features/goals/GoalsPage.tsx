@@ -10,6 +10,8 @@ import { SCHEMA_VERSION, personalGoal, type Currency, type GoalTarget, type Goal
 import { minorToInput, parseMoneyInput } from '@/domain/money';
 import { formatPeriod, t } from '@/i18n';
 import { newId } from '@/utils/id';
+import { AchievementsPanel } from './Achievements';
+import { computeAchievements } from '@/domain/achievements';
 import { GoalStatusBadge, describeTarget, progressRatio, progressText, supportiveMessage } from './goalView';
 
 const TYPES = Object.keys(t.goalTypes) as GoalType[];
@@ -43,6 +45,7 @@ export function GoalsPage() {
     <>
       <PageHeader
         title="Objetivos"
+        mood="happy"
         description="Si querés bajar un cambio, armá tus propias metas. Opcionales, sin puntajes ni rankings: cada una se mide a su manera."
         actions={
           editing === null && (
@@ -59,10 +62,15 @@ export function GoalsPage() {
         </div>
       )}
 
+      <div className="mb-5">
+        <AchievementsPanel summary={computeAchievements(data, today)} />
+      </div>
+
       {goals.length === 0 && !editing ? (
         <div className="card">
           <EmptyState
             icon={Target}
+            mood="chill"
             title="Sin objetivos por ahora"
             action={
               <Button variant="primary" icon={Plus} onClick={() => setEditing('new')}>

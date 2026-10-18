@@ -85,10 +85,11 @@ export function HistoryPage() {
   if (data.consumption.length === 0) {
     return (
       <>
-        <PageHeader title="Historial" />
+        <PageHeader title="Historial" mood="sleepy" />
         <div className="card">
           <EmptyState
             icon={History}
+            mood="sleepy"
             title="Todavía no hay humo registrado"
             action={
               <LinkButton to="/registrar" variant="primary" icon={Plus}>
@@ -107,6 +108,7 @@ export function HistoryPage() {
     <>
       <PageHeader
         title="Historial"
+        mood="chill"
         description={`${plural(filtered.length, 'registro', 'registros')}${hasFilters ? ' con los filtros actuales' : ''}`}
         actions={
           <LinkButton to="/registrar" variant="primary" icon={Plus} size="sm">
@@ -166,7 +168,7 @@ export function HistoryPage() {
 
       {filtered.length === 0 ? (
         <div className="card">
-          <EmptyState icon={SearchX} title="Sin resultados" compact action={<Button onClick={resetFilters}>Quitar filtros</Button>}>
+          <EmptyState icon={SearchX} mood="curious" title="Sin resultados" compact action={<Button onClick={resetFilters}>Quitar filtros</Button>}>
             Ningún registro coincide con estos filtros.
           </EmptyState>
         </div>

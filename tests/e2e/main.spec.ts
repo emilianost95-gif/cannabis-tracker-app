@@ -4,6 +4,11 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  // La bienvenida tiene sus propias pruebas; acá se da por vista.
+  await page.addInitScript(() => localStorage.setItem('fumometro-onboarded', '1'));
+});
+
 const ROUTES = ['/', '/#/registrar', '/#/historial', '/#/estadisticas', '/#/objetivos', '/#/gastos', '/#/diario', '/#/ajustes'];
 
 async function primaryNav(page: Page, name: string) {
@@ -73,7 +78,7 @@ test('exporta JSON y CSV, rechaza importación inválida sin perder datos', asyn
   await register(page, { notes: 'dato que debe sobrevivir' });
   await page.goto('/#/ajustes');
 
-  const [json] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Copia completa (JSON)' }).click()]);
+  const [json] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Copia sin cifrar (JSON)' }).click()]);
   expect(json.suggestedFilename()).toMatch(/^fumometro-copia-\d{4}-\d{2}-\d{2}\.json$/);
   const content = JSON.parse(await (await json.createReadStream()).toArray().then((c) => Buffer.concat(c).toString('utf8')));
   expect(content.meta.counts.consumption).toBe(1);
@@ -144,4 +149,16 @@ test('el link de la demo abre datos de ejemplo y se ve bien en todas las pantall
   await page.getByRole('button', { name: 'Salir de la demo' }).first().click();
   await page.goto('/');
   await expect(page.getByText('Todavía no hay humo por acá')).toBeVisible();
+});
+
+test('bienvenida en el primer uso', async ({ browser }) => {
+  const ctx = await browser.newContext({ baseURL: 'http://localhost:4317', timezoneId: 'America/Santiago' });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Bienvenido al Fumómetro' })).toBeVisible();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByRole('button', { name: 'Ver la demo primero' }).click();
+  await expect(page.getByText(/Todo lo que ves son datos de ejemplo/)).toBeVisible();
+  await ctx.close();
 });

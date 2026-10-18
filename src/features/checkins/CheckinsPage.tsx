@@ -20,13 +20,14 @@ export function CheckinsPage() {
     <>
       <PageHeader
         title="Registro personal"
+        mood="chill"
         description="Un espacio breve para anotar cómo estás, consumas o no. Todo es opcional y sirve para observar patrones con el tiempo; no genera diagnósticos."
       />
       <div className="grid gap-5 lg:grid-cols-[22rem_1fr] lg:items-start">
         <CheckinForm key={editing?.id ?? 'new'} existing={editing ?? undefined} onDone={() => setEditing(null)} />
         <Card title="Anotaciones anteriores">
           {sorted.length === 0 ? (
-            <EmptyState compact icon={NotebookPen} title="Sin anotaciones todavía">
+            <EmptyState compact icon={NotebookPen} mood="chill" title="Sin anotaciones todavía">
               Cuando tengas varias, en Estadísticas vas a poder compararlas con los días con y sin consumo.
             </EmptyState>
           ) : (

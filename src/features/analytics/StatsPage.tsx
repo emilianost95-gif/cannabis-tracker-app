@@ -102,6 +102,7 @@ export function StatsPage() {
         <div className="card">
           <EmptyState
             icon={ChartColumn}
+            mood="sleepy"
             title="Aún no hay datos para analizar"
             action={
               <LinkButton to="/registrar" variant="primary" icon={Plus}>

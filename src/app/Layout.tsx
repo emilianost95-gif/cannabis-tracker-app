@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   ChartColumn,
@@ -18,6 +18,8 @@ import { useData } from '@/state/DataContext';
 import { Banner, Button, Spinner, cx } from '@/components/ui';
 import { Logo } from '@/components/brand';
 import { useToast } from '@/components/Toast';
+import { Onboarding } from '@/features/onboarding/Onboarding';
+import { hasOnboarded } from '@/features/onboarding/onboardingState';
 
 interface NavItem {
   to: string;
@@ -63,7 +65,8 @@ function SideLink({ item }: { item: NavItem }) {
 }
 
 export function Layout() {
-  const { status, storage, mode, exitDemo } = useData();
+  const { status, storage, mode, exitDemo, data } = useData();
+  const [onboardingClosed, setOnboardingClosed] = useState(false);
   const toast = useToast();
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
@@ -79,8 +82,13 @@ export function Layout() {
     mainRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
+  const isEmpty = data.consumption.length === 0 && data.checkins.length === 0 && data.expenses.length === 0 && data.goals.length === 0;
+  const showOnboarding =
+    !onboardingClosed && status === 'ready' && mode === 'real' && isEmpty && location.pathname !== '/demo' && !hasOnboarded();
+
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15rem_1fr]">
+      {showOnboarding && <Onboarding onDone={() => setOnboardingClosed(true)} />}
       <a
         href="#contenido"
         className="sr-only z-[70] rounded bg-accent px-3 py-2 text-accent-ink focus:not-sr-only focus:fixed focus:left-3 focus:top-3"

@@ -35,6 +35,7 @@ export function EntryDetailPage() {
     return (
       <EmptyState
         icon={FileQuestion}
+        mood="curious"
         title="Este registro no existe"
         action={
           <LinkButton to="/historial" variant="primary">

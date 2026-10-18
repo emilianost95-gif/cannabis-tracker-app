@@ -23,6 +23,11 @@ Nombre y voz con humor fumón («¿cómo viene la mano?», «días sin humo», �
 
 Para mostrar la app sin datos propios: link `/#/demo` o Ajustes → Modo demo. Ocho semanas de datos de ejemplo con una historia de reducción gradual, en almacenamiento separado, con aviso permanente y salida en un toque que restaura los datos reales.
 
+## Funciones agregadas después del MVP
+
+- Bienvenida de 3 pasos, copias cifradas con contraseña, logros sin humo con rachas, recordatorio diario por calendario y aviso en la app.
+- Regla para logros: solo premian días sin humo, metas cumplidas, bajar respecto del propio promedio y constancia del registro personal. «Bitácora al día» cuenta solo registros personales para que no pueda ganarse fumando a diario.
+
 ## Alcance del MVP
 
 ### Incluido

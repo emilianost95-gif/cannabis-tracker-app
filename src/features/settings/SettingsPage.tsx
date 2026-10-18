@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Download, FileJson, FileSpreadsheet, FlaskConical, HardDrive, Link2, Plus, RotateCcw, Save, ShieldCheck, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
+import { BellRing, Download, FileJson, FileSpreadsheet, FlaskConical, KeyRound, LockKeyhole, HardDrive, Link2, Plus, RotateCcw, Save, ShieldCheck, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
 import { useData } from '@/state/DataContext';
 import { storageErrorMessage, useToast } from '@/components/Toast';
 import { Banner, Button, Card, Field, PageHeader } from '@/components/ui';
@@ -20,6 +20,8 @@ import {
 import { parseMoneyInput } from '@/domain/money';
 import { parseQuantityInput } from '@/domain/quantity';
 import { consumptionCsv, downloadText, exportJson, parseImport, readFileText } from '@/services/exportImport';
+import { buildDailyReminderIcs, parseTime } from '@/services/reminders';
+import { decryptBackup, encryptBackup, isEncryptedBackup, MIN_PASSWORD_LENGTH, shareFile, validatePassword } from '@/services/encryptedBackup';
 import { formatMoneyObj, formatNumber, t } from '@/i18n';
 import { dayKey } from '@/utils/dates';
 
@@ -35,10 +37,11 @@ const FIELD_LABELS: Record<OptionalField, string> = {
 export function SettingsPage() {
   return (
     <>
-      <PageHeader title="Ajustes y datos" description="Preferencias, copias de seguridad y control total de tus datos locales." />
+      <PageHeader title="Ajustes y datos" mood="chill" description="Preferencias, copias de seguridad y control total de tus datos locales." />
       <div className="grid gap-4 lg:grid-cols-2">
         <DemoCard />
         <PreferencesCard />
+        <RemindersCard />
         <FieldsCard />
         <ReferencePricesCard />
         <StorageCard />
@@ -377,6 +380,7 @@ function DataCard() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearAck, setClearAck] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pw, setPw] = useState<{ kind: 'export' } | { kind: 'import'; text: string } | null>(null);
   const stamp = dayKey(new Date());
   const total = data.consumption.length + data.checkins.length + data.expenses.length + data.goals.length;
 
@@ -385,6 +389,10 @@ function DataCard() {
     setImportError(null);
     try {
       const text = await readFileText(f);
+      if (isEncryptedBackup(text)) {
+        setPw({ kind: 'import', text });
+        return;
+      }
       const res = parseImport(text);
       if (!res.ok) setImportError({ error: res.error, details: res.details });
       else setPending({ data: res.data, file: res.file });
@@ -428,7 +436,13 @@ function DataCard() {
       <div className="grid gap-5 md:grid-cols-3">
         <div className="grid content-start gap-2">
           <h3 className="text-sm font-medium text-fg">Exportar</h3>
-          <p className="text-xs text-fg-muted">El archivo se genera en tu dispositivo y no se envía a ningún lado. Guardalo en un lugar privado: no está cifrado.</p>
+          <p className="text-xs text-fg-muted">
+            El archivo se genera en tu dispositivo. La copia con contraseña está cifrada (AES-256): sirve para pasar tus datos a otro
+            celular o compu sin que nadie más pueda leerla.
+          </p>
+          <Button variant="primary" icon={LockKeyhole} onClick={() => setPw({ kind: 'export' })}>
+            Copia con contraseña
+          </Button>
           <Button
             icon={FileJson}
             onClick={() => {
@@ -436,7 +450,7 @@ function DataCard() {
               toast('Copia JSON generada');
             }}
           >
-            Copia completa (JSON)
+            Copia sin cifrar (JSON)
           </Button>
           <Button
             icon={FileSpreadsheet}
@@ -451,7 +465,7 @@ function DataCard() {
         </div>
         <div className="grid content-start gap-2">
           <h3 className="text-sm font-medium text-fg">Importar</h3>
-          <p className="text-xs text-fg-muted">Solo copias JSON de esta app. Se valida todo el archivo antes de tocar tus datos.</p>
+          <p className="text-xs text-fg-muted">Copias de esta app, con o sin contraseña. Se valida todo el archivo antes de tocar tus datos.</p>
           <input
             ref={fileRef}
             type="file"
@@ -485,6 +499,30 @@ function DataCard() {
           </Button>
         </div>
       </div>
+
+      <PasswordDialog
+        mode={pw?.kind ?? null}
+        onClose={() => setPw(null)}
+        onSubmit={async (password) => {
+          if (!pw) return null;
+          if (pw.kind === 'export') {
+            const enc = await encryptBackup(exportJson(data), password);
+            const name = `fumometro-copia-cifrada-${stamp}.json`;
+            const shared = await shareFile(name, enc, 'application/json');
+            if (!shared) downloadText(name, enc, 'application/json');
+            toast('Copia cifrada lista. Guardá la contraseña: sin ella no se puede abrir.');
+            setPw(null);
+            return null;
+          }
+          const dec = await decryptBackup(pw.text, password);
+          if (!dec.ok) return dec.error;
+          const res = parseImport(dec.json);
+          setPw(null);
+          if (!res.ok) setImportError({ error: res.error, details: res.details });
+          else setPending({ data: res.data, file: res.file });
+          return null;
+        }}
+      />
 
       <Dialog
         open={pending !== null}
@@ -551,7 +589,7 @@ function PrivacyCard() {
           <li>No hay cuenta ni servidor: todo se guarda en el almacenamiento local (IndexedDB) de este navegador.</li>
           <li>La app no envía tus registros a terceros, no tiene publicidad ni analíticas, y no incluye SDKs externos.</li>
           <li>Las direcciones de las pantallas solo contienen identificadores aleatorios, nunca datos de consumo.</li>
-          <li>Los datos no están cifrados por la app: quien tenga acceso a este navegador y perfil puede verlos.</li>
+          <li>Los datos guardados en el navegador no están cifrados: quien tenga acceso a este navegador y perfil puede verlos. Las copias «con contraseña» sí están cifradas (AES-256) y solo se abren con tu contraseña.</li>
         </ul>
         <ul className="grid list-disc gap-1.5 pl-5">
           <li>«Eliminar todo» borra los datos de la app en este navegador. No puede borrar archivos exportados, respaldos del sistema operativo o copias que el navegador sincronice por su cuenta.</li>
@@ -560,6 +598,146 @@ function PrivacyCard() {
           <li>Esta app no ofrece consejo médico ni diagnósticos.</li>
         </ul>
       </div>
+    </Card>
+  );
+}
+
+function PasswordDialog({
+  mode,
+  onClose,
+  onSubmit,
+}: {
+  mode: 'export' | 'import' | null;
+  onClose: () => void;
+  /** Devuelve un mensaje de error o null si salió bien. */
+  onSubmit: (password: string) => Promise<string | null>;
+}) {
+  const [password, setPassword] = useState('');
+  const [repeat, setRepeat] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const close = () => {
+    setPassword('');
+    setRepeat('');
+    setError(null);
+    onClose();
+  };
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (mode === 'export') {
+      const v = validatePassword(password);
+      if (v) return setError(v);
+      if (password !== repeat) return setError('Las contraseñas no coinciden.');
+    } else if (!password) {
+      return setError('Ingresá la contraseña de la copia.');
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const err = await onSubmit(password);
+      if (err) setError(err);
+      else {
+        setPassword('');
+        setRepeat('');
+      }
+    } catch {
+      setError('No se pudo completar. Intentá de nuevo.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={mode !== null} title={mode === 'export' ? 'Copia con contraseña' : 'Esta copia tiene contraseña'} onClose={close}>
+      <form onSubmit={submit} noValidate className="grid gap-3">
+        <p>
+          {mode === 'export'
+            ? 'Elegí una contraseña. La vas a necesitar para abrir la copia en otro dispositivo. Si la olvidás, no hay forma de recuperarla: ni nosotros podemos.'
+            : 'Ingresá la contraseña que usaste al crear la copia.'}
+        </p>
+        <Field label="Contraseña" error={mode === 'import' ? error : null} hint={mode === 'export' ? `Mínimo ${MIN_PASSWORD_LENGTH} caracteres` : undefined}>
+          {({ id, describedBy, invalid }) => (
+            <input
+              id={id}
+              type="password"
+              autoComplete={mode === 'export' ? 'new-password' : 'current-password'}
+              className="field-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-describedby={describedBy}
+              aria-invalid={invalid}
+            />
+          )}
+        </Field>
+        {mode === 'export' && (
+          <Field label="Repetí la contraseña" error={error}>
+            {({ id, describedBy, invalid }) => (
+              <input
+                id={id}
+                type="password"
+                autoComplete="new-password"
+                className="field-input"
+                value={repeat}
+                onChange={(e) => setRepeat(e.target.value)}
+                aria-describedby={describedBy}
+                aria-invalid={invalid}
+              />
+            )}
+          </Field>
+        )}
+        <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button onClick={close} disabled={busy}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="primary" icon={KeyRound} disabled={busy}>
+            {busy ? 'Procesando…' : mode === 'export' ? 'Crear copia' : 'Abrir copia'}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function RemindersCard() {
+  const toast = useToast();
+  const [time, setTime] = useState('21:30');
+  const [discreet, setDiscreet] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function add() {
+    if (!parseTime(time)) return setError('Elegí una hora válida.');
+    setError(null);
+    const ics = buildDailyReminderIcs({ time, discreet, appUrl: `${window.location.origin}${window.location.pathname}` });
+    const name = discreet ? 'recordatorio.ics' : 'fumometro-recordatorio.ics';
+    const shared = await shareFile(name, ics, 'text/calendar');
+    if (!shared) downloadText(name, ics, 'text/calendar;charset=utf-8');
+    toast('Abrí el archivo y aceptá agregarlo a tu calendario.');
+  }
+
+  return (
+    <Card title="Recordatorio diario" icon={BellRing}>
+      <p className="mb-4 text-sm text-fg-muted">
+        Se agrega como evento repetido en el calendario de tu celular (iPhone o Android) y te avisa todos los días a la hora que elijas.
+        No usa servidor ni comparte datos. Para quitarlo, borrá el evento del calendario.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-[10rem_1fr] sm:items-end">
+        <Field label="Hora" error={error}>
+          {({ id, describedBy, invalid }) => (
+            <input id={id} type="time" className="field-input num" value={time} onChange={(e) => setTime(e.target.value)} aria-describedby={describedBy} aria-invalid={invalid} />
+          )}
+        </Field>
+        <label className="flex cursor-pointer items-start gap-2 pb-2 text-sm text-fg">
+          <input type="checkbox" className="mt-0.5 size-4 accent-[#b6f36a]" checked={discreet} onChange={(e) => setDiscreet(e.target.checked)} />
+          <span>
+            Texto discreto <span className="text-fg-subtle">(«Revisar mi bitácora», sin mencionar la app)</span>
+          </span>
+        </label>
+      </div>
+      <Button className="mt-4" icon={BellRing} onClick={() => void add()}>
+        Agregar a mi calendario
+      </Button>
     </Card>
   );
 }

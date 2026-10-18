@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, Check, Flag, FlaskConical, Pencil, Plus, Target, Wallet } from 'lucide-react';
+import { ArrowRight, Award, CalendarDays, NotebookPen, X, Check, Flag, FlaskConical, Pencil, Plus, Target, Wallet } from 'lucide-react';
 import { useData } from '@/state/DataContext';
 import { useToday } from '@/state/useToday';
 import { storageErrorMessage, useToast } from '@/components/Toast';
@@ -27,6 +27,10 @@ import { capitalize, formatDay, formatMoney, formatNumber, formatShortDay, forma
 import { addDaysKey, comparedRange, monthOf, weekOf } from '@/utils/dates';
 import { TrendLine } from '@/features/analytics/Trend';
 import { GoalStatusBadge, progressRatio, progressText } from '@/features/goals/goalView';
+import { ACHIEVEMENT_INFO } from '@/features/goals/achievementInfo';
+import { dismissNudge, shouldNudge } from '@/services/reminders';
+import { dayKeyOfIso } from '@/utils/dates';
+import { computeAchievements } from '@/domain/achievements';
 
 function greeting(now: Date): string {
   const h = now.getHours();
@@ -75,6 +79,7 @@ export function DashboardPage() {
       monthEstimated: estimatedUsage(data.consumption, monthSoFar),
       comparison: comparePeriods(data.consumption, comparedRange('7d', today), start),
       avg4: previousWeeksAverage(data.consumption, week.from, 4, start),
+      achievements: computeAchievements(data, today),
       weekLimit: (() => {
         const g = data.goals.find((x) => x.status === 'active' && x.target.type === 'reduce_frequency');
         return g?.target.type === 'reduce_frequency' ? g.target.maxSessionsPerWeek : null;
@@ -90,6 +95,7 @@ export function DashboardPage() {
   const isEmpty = data.consumption.length === 0 && data.checkins.length === 0 && data.expenses.length === 0;
   const name = prefs.displayName.trim();
   const line = humitoLine(m.weekCount, m.avg4, m.weekFree?.free ?? null);
+  const [nudge, setNudge] = useState(() => shouldNudge(new Date(), today, data.checkins.some((c) => dayKeyOfIso(c.occurredAt) === today)));
 
   return (
     <>
@@ -101,9 +107,11 @@ export function DashboardPage() {
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{capitalize(formatDay(today))}</h1>
         </div>
-        <LinkButton to="/registrar" variant="primary" icon={Plus} className="hidden sm:inline-flex">
-          Anotar sesión
-        </LinkButton>
+        <div className="hidden sm:block">
+          <LinkButton to="/registrar" variant="primary" icon={Plus}>
+            Anotar sesión
+          </LinkButton>
+        </div>
       </header>
 
       {isEmpty ? (
@@ -126,6 +134,25 @@ export function DashboardPage() {
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-6">
+          {nudge && (
+            <div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border-strong bg-surface-2 px-3 py-2.5 text-sm lg:col-span-6" role="status">
+              <Link to="/diario" className="flex items-center gap-2 text-fg hover:underline">
+                <NotebookPen aria-hidden size={16} className="text-accent" />
+                ¿Cómo estuvo el día? Anotalo en 10 segundos.
+              </Link>
+              <button
+                type="button"
+                aria-label="Ocultar por hoy"
+                className="rounded p-1 text-fg-subtle hover:text-fg"
+                onClick={() => {
+                  dismissNudge(today);
+                  setNudge(false);
+                }}
+              >
+                <X aria-hidden size={16} />
+              </button>
+            </div>
+          )}
           <section aria-labelledby="fumometro-semana" className="card relative overflow-hidden p-4 sm:p-6 lg:col-span-6">
             <SmokeWisps className="absolute inset-x-0 bottom-0 h-24 w-full" />
             <div className="relative grid items-center gap-6 md:grid-cols-[minmax(0,22rem)_1fr]">
@@ -282,6 +309,43 @@ export function DashboardPage() {
           </Card>
 
           <NextAction className="lg:col-span-2" />
+
+          <Card
+            title="Racha sin humo"
+            icon={Award}
+            className="lg:col-span-4"
+            action={
+              <Link to="/objetivos" className="flex items-center gap-1 text-xs text-fg-muted hover:text-fg">
+                Logros <ArrowRight aria-hidden size={14} />
+              </Link>
+            }
+          >
+            <div className="flex flex-wrap items-center gap-6">
+              <Stat
+                label="Racha actual"
+                value={plural(m.achievements.currentFreeStreak, 'día', 'días')}
+                hint={`Mejor racha: ${plural(m.achievements.bestFreeStreak, 'día', 'días')}`}
+              />
+              <ul className="flex flex-wrap gap-2" aria-label="Logros desbloqueados">
+                {m.achievements.achievements.filter((a) => a.unlocked).length === 0 ? (
+                  <li className="text-sm text-fg-muted">Tu primer logro llega con el primer día sin humo.</li>
+                ) : (
+                  m.achievements.achievements
+                    .filter((a) => a.unlocked)
+                    .slice(-4)
+                    .map((a) => {
+                      const Info = ACHIEVEMENT_INFO[a.id];
+                      return (
+                        <li key={a.id} className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(182_243_106/0.3)] bg-accent-soft px-2.5 py-1 text-xs text-fg">
+                          <Info.icon aria-hidden size={14} className="text-accent" />
+                          {Info.title}
+                        </li>
+                      );
+                    })
+                )}
+              </ul>
+            </div>
+          </Card>
         </div>
       )}
       {!isEmpty && (

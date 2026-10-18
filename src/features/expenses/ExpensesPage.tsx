@@ -63,6 +63,7 @@ export function ExpensesPage() {
     <>
       <PageHeader
         title="Gastos"
+        mood="curious"
         description="Gasto real = compras registradas acá + importes marcados como «pagué en el momento» al registrar una sesión. Los valores estimados se muestran aparte."
         actions={
           <Button variant="primary" size="sm" icon={Plus} onClick={() => setEditing('new')}>
@@ -146,6 +147,7 @@ export function ExpensesPage() {
             <EmptyState
               compact
               icon={Receipt}
+              mood="happy"
               title="Sin compras registradas"
               action={
                 <Button variant="primary" icon={Plus} onClick={() => setEditing('new')}>

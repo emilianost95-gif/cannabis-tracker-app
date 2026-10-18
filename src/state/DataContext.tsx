@@ -149,11 +149,13 @@ export function DataProvider({
   }, []);
 
   const exitDemo = useCallback(async () => {
-    // Al salir se descartan los datos de ejemplo; los reales nunca se tocaron.
-    if (mode === 'demo' && repoRef.current) await repoRef.current.clearAll().catch(() => undefined);
-    repoRef.current = null;
+    // Primero se registra la salida (sobrevive a una recarga inmediata) y
+    // después se descartan los datos de ejemplo; los reales nunca se tocaron.
     writeMode('real');
+    const demoRepo = mode === 'demo' ? repoRef.current : null;
+    repoRef.current = null;
     setMode('real');
+    if (demoRepo) await demoRepo.clearAll().catch(() => undefined);
   }, [mode]);
 
   const resetDemo = useCallback(async () => {

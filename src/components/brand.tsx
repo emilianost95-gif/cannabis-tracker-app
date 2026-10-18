@@ -3,7 +3,6 @@
  * mascota de humo. Todo en SVG en línea: sin imágenes externas ni peticiones.
  */
 import { useId } from 'react';
-import { cx } from './ui';
 
 export const APP_NAME = 'Fumómetro';
 
@@ -45,7 +44,7 @@ export type HumitoMood = 'chill' | 'happy' | 'sleepy' | 'curious';
 export function Humito({ mood = 'chill', className = 'w-28', float = true }: { mood?: HumitoMood; className?: string; float?: boolean }) {
   const gid = useId().replace(/:/g, '');
   return (
-    <svg viewBox="0 0 140 120" className={cx(className, float && 'humito-float')} aria-hidden>
+    <svg viewBox="0 0 140 120" className={float ? `${className} humito-float` : className} aria-hidden>
       <defs>
         <radialGradient id={`${gid}-body`} cx="45%" cy="35%" r="70%">
           <stop offset="0" stopColor="#f3f5f7" />
@@ -127,7 +126,7 @@ export function HumitoSays({ mood, children }: { mood?: HumitoMood; children: Re
 /** Volutas de humo decorativas para fondos de tarjetas destacadas. */
 export function SmokeWisps({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 400 160" className={cx('pointer-events-none', className)} aria-hidden preserveAspectRatio="none">
+    <svg viewBox="0 0 400 160" className={`pointer-events-none ${className ?? ''}`} aria-hidden preserveAspectRatio="none">
       <g fill="none" stroke="#b6f36a" strokeLinecap="round" opacity=".05" strokeWidth="10">
         <path d="M-10 120c60-40 110 20 170-20s100-60 160-20 80 30 100 10" />
         <path d="M20 160c50-30 90 10 140-15s90-50 140-15" strokeWidth="6" />

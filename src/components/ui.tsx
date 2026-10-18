@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
+import { Humito, type HumitoMood } from './brand';
 
 export function cx(...xs: (string | false | null | undefined)[]): string {
   return xs.filter(Boolean).join(' ');
@@ -70,16 +71,22 @@ export function PageHeader({
   title,
   description,
   actions,
+  mood,
 }: {
   title: string;
   description?: ReactNode;
   actions?: ReactNode;
+  /** Muestra a Humito junto al título. */
+  mood?: HumitoMood;
 }) {
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0">
+      <div className="flex min-w-0 items-end gap-3">
+        {mood && <Humito mood={mood} className="hidden w-16 shrink-0 sm:block" float={false} />}
+        <div className="min-w-0">
         <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-3xl">{title}</h1>
         {description && <p className="mt-1 max-w-prose text-sm text-fg-muted">{description}</p>}
+        </div>
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </header>
@@ -143,12 +150,15 @@ export function Stat({
 
 export function EmptyState({
   icon: Icon,
+  mood,
   title,
   children,
   action,
   compact,
 }: {
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  /** Humito en lugar del icono. */
+  mood?: HumitoMood;
   title: string;
   children?: ReactNode;
   action?: ReactNode;
@@ -156,9 +166,15 @@ export function EmptyState({
 }) {
   return (
     <div className={cx('flex flex-col items-center text-center', compact ? 'py-6' : 'py-12')}>
-      <div className="mb-4 grid size-12 place-items-center rounded-[var(--radius-lg)] border border-border bg-surface-2 text-accent">
-        <Icon aria-hidden size={22} />
-      </div>
+      {mood ? (
+        <Humito mood={mood} className={cx('mb-3', compact ? 'w-20' : 'w-28')} />
+      ) : (
+        Icon && (
+          <div className="mb-4 grid size-12 place-items-center rounded-[var(--radius-lg)] border border-border bg-surface-2 text-accent">
+            <Icon aria-hidden size={22} />
+          </div>
+        )
+      )}
       <h3 className="font-display text-lg font-semibold text-fg">{title}</h3>
       {children && <div className="mt-1 max-w-sm text-sm text-fg-muted">{children}</div>}
       {action && <div className="mt-5">{action}</div>}

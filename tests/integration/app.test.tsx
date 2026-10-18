@@ -167,7 +167,7 @@ describe('datos: exportar, importar y eliminar', () => {
     await registerEntry(user, { notes: 'para exportar' });
     await screen.findByRole('region', { name: 'Hoy' });
     await go(user, 'Ajustes y datos');
-    await user.click(await screen.findByRole('button', { name: 'Copia completa (JSON)' }));
+    await user.click(await screen.findByRole('button', { name: 'Copia sin cifrar (JSON)' }));
     expect(captured).not.toBeNull();
     const json = JSON.parse(await readFileText(captured!));
     expect(json.meta).toMatchObject({ app: 'fumometro', schemaVersion: 1, counts: { consumption: 1 } });
@@ -263,7 +263,7 @@ describe('gastos y objetivos', () => {
 
 describe('modo demo', () => {
   beforeEach(() => {
-    localStorage.clear();
+    localStorage.removeItem('fumometro-mode');
   });
 
   it('el link /demo muestra datos de ejemplo marcados y no toca los datos reales', async () => {
@@ -296,5 +296,80 @@ describe('modo demo', () => {
     await go(user, 'Estadísticas');
     expect(await screen.findByRole('region', { name: 'Calendario de humo (últimas 12 semanas)' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Cómo lo consumís' })).toBeInTheDocument();
+  });
+});
+
+describe('bienvenida', () => {
+  it('aparece una sola vez y guarda nombre y moneda', async () => {
+    localStorage.removeItem('fumometro-onboarded');
+    const { user, unmount } = renderApp('/');
+    expect(await screen.findByRole('heading', { name: 'Bienvenido al Fumómetro' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(await screen.findByRole('heading', { name: 'Lo tuyo queda acá' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await user.type(screen.getByLabelText(/¿Cómo te llamo\?/), 'Emi');
+    await user.click(screen.getByLabelText('Pesos argentinos'));
+    await user.click(screen.getByRole('button', { name: 'Anotar mi primera sesión' }));
+    expect(await screen.findByRole('heading', { name: 'Anotar sesión' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '¿Cómo arrancamos?' })).not.toBeInTheDocument();
+    unmount();
+
+    const again = renderApp('/');
+    expect(await screen.findByText(/Emi · ¿cómo viene la mano\?/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Bienvenido al Fumómetro' })).not.toBeInTheDocument();
+    again.unmount();
+  });
+
+  it('se puede saltar', async () => {
+    localStorage.removeItem('fumometro-onboarded');
+    const { user } = renderApp('/');
+    await user.click(await screen.findByRole('button', { name: 'Saltar' }));
+    expect(await screen.findByText('Todavía no hay humo por acá')).toBeInTheDocument();
+    expect(localStorage.getItem('fumometro-onboarded')).toBe('1');
+  });
+});
+
+describe('copia con contraseña', () => {
+  it('exporta cifrada, rechaza contraseña incorrecta e importa con la correcta', async () => {
+    let captured: Blob | null = null;
+    URL.createObjectURL ??= (() => '') as typeof URL.createObjectURL;
+    URL.revokeObjectURL ??= (() => undefined) as typeof URL.revokeObjectURL;
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((b: Blob | MediaSource) => {
+      captured = b as Blob;
+      return 'blob:test';
+    });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    const repo = await IndexedDbRepository.open();
+    await repo.put('consumption', testEntry('2026-10-01 20:00', { notes: 'viaja cifrado' }));
+    const { user } = renderApp('/ajustes');
+    await user.click(await screen.findByRole('button', { name: 'Copia con contraseña' }));
+    let dialog = await screen.findByRole('dialog', { name: 'Copia con contraseña' });
+    await user.type(within(dialog).getByLabelText('Contraseña'), 'mi-clave-123');
+    await user.type(within(dialog).getByLabelText('Repetí la contraseña'), 'otra-cosa');
+    await user.click(within(dialog).getByRole('button', { name: 'Crear copia' }));
+    expect(await within(dialog).findByText('Las contraseñas no coinciden.')).toBeInTheDocument();
+    await user.clear(within(dialog).getByLabelText('Repetí la contraseña'));
+    await user.type(within(dialog).getByLabelText('Repetí la contraseña'), 'mi-clave-123');
+    await user.click(within(dialog).getByRole('button', { name: 'Crear copia' }));
+    await waitFor(() => expect(captured).not.toBeNull(), { timeout: 10000 });
+    const encrypted = await readFileText(captured!);
+    expect(encrypted).not.toContain('viaja cifrado');
+
+    // Borrar todo y restaurar desde la copia cifrada.
+    await repo.clearAll();
+    await user.upload(screen.getByTestId('import-file'), new File([encrypted], 'c.json', { type: 'application/json' }));
+    dialog = await screen.findByRole('dialog', { name: 'Esta copia tiene contraseña' });
+    await user.type(within(dialog).getByLabelText('Contraseña'), 'equivocada');
+    await user.click(within(dialog).getByRole('button', { name: 'Abrir copia' }));
+    expect(await within(dialog).findByText('Contraseña incorrecta o archivo alterado.', {}, { timeout: 10000 })).toBeInTheDocument();
+    await user.clear(within(dialog).getByLabelText('Contraseña'));
+    await user.type(within(dialog).getByLabelText('Contraseña'), 'mi-clave-123');
+    await user.click(within(dialog).getByRole('button', { name: 'Abrir copia' }));
+    const confirm = await screen.findByRole('dialog', { name: '¿Reemplazar tus datos con esta copia?' }, { timeout: 10000 });
+    await user.click(within(confirm).getByRole('button', { name: 'Reemplazar e importar' }));
+    await go(user, 'Historial');
+    expect(await screen.findByText('viaja cifrado')).toBeInTheDocument();
   });
 });

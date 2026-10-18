@@ -6,6 +6,13 @@ Aplicación web progresiva (PWA) para que personas adultas registren, visualicen
 
 **Local-first:** no hay cuenta ni servidor. Todos los datos viven en el IndexedDB del navegador.
 
+## Funciones destacadas
+
+- **Bienvenida** de 3 pasos en el primer uso (nombre y moneda opcionales, o ir directo a la demo).
+- **Copias con contraseña:** AES-256-GCM con clave derivada por PBKDF2-SHA-256 (600 000 iteraciones), todo con Web Crypto en el navegador ([`encryptedBackup.ts`](src/services/encryptedBackup.ts)). En el celular se comparten con el menú nativo (WhatsApp, AirDrop, mail). La importación detecta la copia cifrada y pide la contraseña.
+- **Logros sin humo** ([`achievements.ts`](src/domain/achievements.ts)): rachas, finde sin humo, semana bajo tu promedio, metas cumplidas, constancia del registro personal y mes dentro del presupuesto. Ninguno se puede ganar consumiendo más.
+- **Recordatorio diario** como evento de calendario `.ics` (iPhone y Android, título discreto opcional) y aviso suave en la app desde las 19 h si no anotaste cómo estás.
+
 ## Modo demo
 
 `/#/demo` (o Ajustes → Modo demo) carga 8 semanas de datos de ejemplo generados de forma determinista ([`src/demo/demoData.ts`](src/demo/demoData.ts)), relativos a la fecha actual. Se guardan en una base IndexedDB separada (`fumometro-demo`), un aviso permanente indica que son datos inventados, y «Salir de la demo» los descarta y vuelve a los datos reales, que nunca se leen ni se modifican durante la demo.
@@ -118,13 +125,14 @@ Navegación por teclado, enlace «Saltar al contenido», foco visible, foco movi
 Ejecutado en Windows 11, Node 24.21:
 
 - `npm run typecheck` ✔ · `npm run lint` ✔ · `npm run build` ✔
-- `npm test` ✔ — 120 pruebas (dominio, patrones, datos de demo, persistencia, import/export e integración de flujos, incluido el modo demo).
-- `npm run test:e2e` ✔ — 14 pruebas (7 flujos × escritorio y móvil Pixel 7) sobre el build de producción.
+- `npm test` ✔ — 141 pruebas (dominio, logros, patrones, cifrado, recordatorios, datos de demo, persistencia, import/export e integración de flujos: demo, bienvenida y copia cifrada).
+- `npm run test:e2e` ✔ — 16 pruebas (8 flujos × escritorio y móvil Pixel 7) sobre el build de producción.
 
 ## Limitaciones conocidas
 
 - Sin sincronización entre dispositivos ni navegadores; cada uno tiene su propio almacenamiento.
-- Datos sin cifrar en reposo (dependen de la seguridad del dispositivo y del perfil del navegador).
+- Datos sin cifrar en reposo dentro del navegador (las copias con contraseña sí están cifradas).
+- Los recordatorios no son notificaciones push: son eventos de calendario; sin servidor no hay push confiable.
 - La zona horaria usada es la del dispositivo en el momento de ver los datos: si viajás, los registros se agrupan según la zona actual.
 - La importación reemplaza todo (no fusiona).
 - Solo los textos de dominio (formatos, unidades, contextos, estados) están centralizados en `src/i18n/es.ts`; el resto de los textos de interfaz todavía están en los componentes.
@@ -134,6 +142,6 @@ Ejecutado en Windows 11, Node 24.21:
 
 ## Funciones pendientes (segunda etapa)
 
-Sincronización opcional cifrada de extremo a extremo, copias de seguridad cifradas con contraseña, recordatorios configurables, informes PDF, idioma inglés (extraer todos los textos a `i18n`), importación con fusión, análisis de patrones con explicaciones transparentes, modo de acompañamiento para reducción. Cualquier función de IA debería ser opcional, explicar sus límites y no enviar el historial a terceros sin consentimiento explícito.
+Sincronización opcional cifrada de extremo a extremo (reutilizando el formato de la copia cifrada; requiere servidor y base de datos, ~US$7/mes en Render), notificaciones push, informes PDF, idioma inglés (extraer todos los textos a `i18n`), importación con fusión, análisis de patrones con explicaciones transparentes, modo de acompañamiento para reducción. Cualquier función de IA debería ser opcional, explicar sus límites y no enviar el historial a terceros sin consentimiento explícito.
 
 Ver también [PRODUCT_SPEC.md](PRODUCT_SPEC.md).

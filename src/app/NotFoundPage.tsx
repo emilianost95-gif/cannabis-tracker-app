@@ -5,7 +5,8 @@ export function NotFoundPage() {
   return (
     <EmptyState
       icon={Compass}
-      title="No encontramos esta pantalla"
+      mood="curious"
+      title="Acá no hay nada… ni humo"
       action={
         <LinkButton to="/" variant="primary">
           Volver al inicio
