@@ -32,6 +32,7 @@ export function EntrySummary({ e }: { e: ConsumptionEntry }) {
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       <span className="font-medium text-fg">{t.methods[e.method]}</span>
       <span className="num text-sm text-fg-muted">{e.quantity ? formatQuantity(e.quantity) : 'sin cantidad'}</span>
+      {e.strain && <Badge tone="accent">{e.strain}</Badge>}
       {e.context && <Badge>{t.contexts[e.context]}</Badge>}
       {e.cost && (
         <Badge tone={e.cost.kind === 'paid' ? 'cyan' : 'neutral'}>
@@ -59,7 +60,7 @@ export function HistoryPage() {
       .filter((e) => (p ? inPeriod(dayKeyOfIso(e.occurredAt), p) : true))
       .filter((e) => method === 'all' || e.method === method)
       .filter((e) => context === 'all' || (context === 'none' ? e.context === null : e.context === context))
-      .filter((e) => q === '' || normalize(e.notes).includes(q))
+      .filter((e) => q === '' || normalize(e.notes).includes(q) || normalize(e.strain ?? '').includes(q))
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   }, [data.consumption, period, method, context, query, today]);
 
@@ -152,7 +153,7 @@ export function HistoryPage() {
           </select>
         </label>
         <label className="grid gap-1 text-xs text-fg-subtle">
-          Buscar en notas
+          Buscar en notas o variedad
           <span className="relative">
             <Search aria-hidden size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
             <input

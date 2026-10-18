@@ -25,6 +25,7 @@ Para mostrar la app sin datos propios: link `/#/demo` o Ajustes → Modo demo. O
 
 ## Funciones agregadas después del MVP
 
+- Variedades con «¿cómo te cayó?», repetir la última sesión con deshacer y tarjeta «Mi semana» para compartir (por defecto solo lo positivo; sesiones y gasto, opcionales).
 - Bienvenida de 3 pasos, copias cifradas con contraseña, logros sin humo con rachas, recordatorio diario por calendario y aviso en la app.
 - Regla para logros: solo premian días sin humo, metas cumplidas, bajar respecto del propio promedio y constancia del registro personal. «Bitácora al día» cuenta solo registros personales para que no pueda ganarse fumando a diario.
 

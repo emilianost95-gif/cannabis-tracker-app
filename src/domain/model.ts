@@ -7,7 +7,16 @@
  */
 import { z } from 'zod';
 
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 2 as const;
+
+/**
+ * Versión de esquema en cada registro. Se aceptan registros de la versión 1
+ * (anteriores a «variedad») y se normalizan a la actual: los campos nuevos
+ * tienen valor por defecto, así que la migración es solo de lectura.
+ */
+const schemaVersionField = z
+  .union([z.literal(1), z.literal(2)])
+  .transform((): typeof SCHEMA_VERSION => SCHEMA_VERSION);
 
 // ---------- Primitivas ----------
 
@@ -120,10 +129,11 @@ export const sessionCost = money.extend({ kind: z.enum(['paid', 'estimated']) })
 export type SessionCost = z.infer<typeof sessionCost>;
 
 export const NOTES_MAX = 1000;
+export const STRAIN_MAX = 60;
 
 export const consumptionEntry = z.object({
   id,
-  schemaVersion: z.literal(SCHEMA_VERSION),
+  schemaVersion: schemaVersionField,
   occurredAt: isoDateTime,
   method,
   quantity: quantity.nullable(),
@@ -133,6 +143,16 @@ export const consumptionEntry = z.object({
   stress: scale5,
   cost: sessionCost.nullable(),
   notes: z.string().max(NOTES_MAX),
+  /** Variedad o cepa (texto libre). v2. */
+  strain: z
+    .string()
+    .trim()
+    .max(STRAIN_MAX)
+    .nullable()
+    .default(null)
+    .transform((s) => (s ? s : null)),
+  /** «¿Cómo te cayó?» 1–5, opcional. v2. */
+  effectRating: scale5.default(null),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });
@@ -143,7 +163,7 @@ export type ConsumptionEntry = z.infer<typeof consumptionEntry>;
 export const moodCheckIn = z
   .object({
     id,
-    schemaVersion: z.literal(SCHEMA_VERSION),
+    schemaVersion: schemaVersionField,
     occurredAt: isoDateTime,
     mood: scale5,
     stress: scale5,
@@ -171,7 +191,7 @@ export type MoodCheckIn = z.infer<typeof moodCheckIn>;
 export const EXPENSE_CATEGORIES = ['product', 'accessory', 'other'] as const;
 export const expenseEntry = z.object({
   id,
-  schemaVersion: z.literal(SCHEMA_VERSION),
+  schemaVersion: schemaVersionField,
   date: localDate,
   amount: money.refine((m) => m.amountMinor > 0, { message: 'El importe debe ser mayor que cero' }),
   category: z.enum(EXPENSE_CATEGORIES),
@@ -187,7 +207,7 @@ export type ExpenseCategory = ExpenseEntry['category'];
 
 const goalBase = z.object({
   id,
-  schemaVersion: z.literal(SCHEMA_VERSION),
+  schemaVersion: schemaVersionField,
   title: z.string().trim().min(1).max(80),
   startDate: localDate,
   endDate: localDate.nullable(),
@@ -241,16 +261,17 @@ export const referencePrice = z.object({
 });
 export type ReferencePrice = z.infer<typeof referencePrice>;
 
-export const OPTIONAL_FIELDS = ['context', 'moodBefore', 'sleepQuality', 'stress', 'cost', 'notes'] as const;
+export const OPTIONAL_FIELDS = ['strain', 'context', 'moodBefore', 'sleepQuality', 'stress', 'cost', 'notes'] as const;
 export type OptionalField = (typeof OPTIONAL_FIELDS)[number];
 
 export const userPreferences = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION),
+  schemaVersion: schemaVersionField,
   displayName: z.string().trim().max(40),
   currency,
   defaultMethod: method,
   defaultUnit: unit.nullable(),
   enabledFields: z.object({
+    strain: z.boolean().default(true),
     context: z.boolean(),
     moodBefore: z.boolean(),
     sleepQuality: z.boolean(),
@@ -275,7 +296,7 @@ export function defaultPreferences(now: Date = new Date()): UserPreferences {
     currency: 'CLP',
     defaultMethod: 'flower_smoked',
     defaultUnit: null,
-    enabledFields: { context: true, moodBefore: true, sleepQuality: true, stress: true, cost: true, notes: true },
+    enabledFields: { strain: true, context: true, moodBefore: true, sleepQuality: true, stress: true, cost: true, notes: true },
     referencePrices: [],
     budgets: { weekly: null, monthly: null },
     nextAction: '',

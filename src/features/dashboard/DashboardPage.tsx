@@ -7,6 +7,8 @@ import { storageErrorMessage, useToast } from '@/components/Toast';
 import { Button, Card, LinkButton, Stat, cx } from '@/components/ui';
 import { Humito, HumitoSays, SmokeWisps, type HumitoMood } from '@/components/brand';
 import { WeekGauge } from '@/components/patternCharts';
+import { QuickRepeat } from '@/features/consumption/QuickRepeat';
+import { ShareWeek } from './ShareWeek';
 import { BarSeries } from '@/components/charts';
 import {
   budgetStatus,
@@ -191,6 +193,9 @@ export function DashboardPage() {
                   <Stat label="Plata en humo (semana)" value={formatMoney(totalIn(m.weekSpend, cur), cur)} hint="Gasto real registrado" />
                 </div>
                 <TrendLine c={m.comparison} />
+                <div>
+                  <ShareWeek mood={line.mood} />
+                </div>
               </div>
             </div>
           </section>
@@ -216,6 +221,9 @@ export function DashboardPage() {
                   {m.todayQty.withoutQuantity > 0 && ` · ${plural(m.todayQty.withoutQuantity, 'sesión', 'sesiones')} sin cantidad`}
                 </>
               )}
+            </div>
+            <div className="mt-3">
+              <QuickRepeat />
             </div>
           </Card>
 

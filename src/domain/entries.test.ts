@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildConsumptionEntry, estimateCost, findPossibleDuplicate, type ConsumptionFormValues } from './entries';
+import { buildConsumptionEntry, buildRepeatEntry, estimateCost, findPossibleDuplicate, lastEntry, type ConsumptionFormValues } from './entries';
 import { consumptionEntry } from './model';
 import { testEntry } from '../../tests/fixtures';
 
@@ -17,6 +17,8 @@ const base: ConsumptionFormValues = {
   costText: '',
   currency: 'CLP',
   notes: '',
+  strainText: '',
+  effectRating: null,
 };
 const opts = { referencePrices: [], now, id: 'test-id-0001' };
 
@@ -81,5 +83,39 @@ describe('posibles duplicados', () => {
     expect(findPossibleDuplicate([a], c)).toBeNull();
     expect(findPossibleDuplicate([a], d)).toBeNull();
     expect(findPossibleDuplicate([a], a)).toBeNull();
+  });
+});
+
+describe('repetir la última sesión', () => {
+  const refs = [{ unit: 'g' as const, perQuantity: 1, price: { amountMinor: 10000, currency: 'CLP' as const } }];
+
+  it('elige la sesión más reciente por fecha', () => {
+    const a = testEntry('2026-10-10 20:00');
+    const b = testEntry('2026-10-12 20:00');
+    expect(lastEntry([b, a])?.id).toBe(b.id);
+    expect(lastEntry([])).toBeNull();
+  });
+
+  it('copia forma, cantidad, contexto y variedad; no copia estado ni notas', () => {
+    const last = testEntry('2026-10-12 20:00', {
+      method: 'vape_cartridge',
+      quantity: { value: 6, unit: 'puff' },
+      context: 'relax',
+      strain: 'Gelato',
+      moodBefore: 2,
+      effectRating: 5,
+      notes: 'de ese día',
+    });
+    const r = buildRepeatEntry(last, refs, now, 'test-id-rep1');
+    expect(r).toMatchObject({ id: 'test-id-rep1', method: 'vape_cartridge', quantity: { value: 6, unit: 'puff' }, context: 'relax', strain: 'Gelato' });
+    expect(r).toMatchObject({ moodBefore: null, effectRating: null, notes: '', occurredAt: now.toISOString() });
+  });
+
+  it('no copia importes pagados y recalcula los estimados', () => {
+    const paid = testEntry('2026-10-12 20:00', { quantity: { value: 0.5, unit: 'g' }, cost: { kind: 'paid', amountMinor: 7000, currency: 'CLP' } });
+    expect(buildRepeatEntry(paid, refs, now, 'test-id-rep2').cost).toBeNull();
+    const est = testEntry('2026-10-12 20:00', { quantity: { value: 0.5, unit: 'g' }, cost: { kind: 'estimated', amountMinor: 1, currency: 'CLP' } });
+    expect(buildRepeatEntry(est, refs, now, 'test-id-rep3').cost).toEqual({ kind: 'estimated', amountMinor: 5000, currency: 'CLP' });
+    expect(buildRepeatEntry(est, [], now, 'test-id-rep4').cost).toBeNull();
   });
 });

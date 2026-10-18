@@ -64,7 +64,7 @@ describe('flujo principal', () => {
     // Vuelve al inicio con el panel actualizado.
     const today = await screen.findByRole('region', { name: 'Hoy' });
     expect(within(today).getByText('Sesiones').nextElementSibling).toHaveTextContent('1');
-    expect(within(today).getByText(/0,5 g/)).toBeInTheDocument();
+    expect(within(today).getByText(/Cantidad: 0,5 g/)).toBeInTheDocument();
 
     unmount();
     const second = renderApp('/historial');
@@ -170,7 +170,7 @@ describe('datos: exportar, importar y eliminar', () => {
     await user.click(await screen.findByRole('button', { name: 'Copia sin cifrar (JSON)' }));
     expect(captured).not.toBeNull();
     const json = JSON.parse(await readFileText(captured!));
-    expect(json.meta).toMatchObject({ app: 'fumometro', schemaVersion: 1, counts: { consumption: 1 } });
+    expect(json.meta).toMatchObject({ app: 'fumometro', schemaVersion: 2, counts: { consumption: 1 } });
     expect(json.consumption[0].notes).toBe('para exportar');
   });
 
@@ -371,5 +371,23 @@ describe('copia con contraseña', () => {
     await user.click(within(confirm).getByRole('button', { name: 'Reemplazar e importar' }));
     await go(user, 'Historial');
     expect(await screen.findByText('viaja cifrado')).toBeInTheDocument();
+  });
+});
+
+describe('repetir la última', () => {
+  it('anota otra sesión igual con un toque y se puede deshacer', async () => {
+    const repo = await IndexedDbRepository.open();
+    await repo.put('consumption', testEntry('2026-10-01 20:00', { quantity: { value: 0.5, unit: 'g' }, strain: 'Gelato', notes: 'original' }));
+    const { user } = renderApp('/');
+    const hoy = await screen.findByRole('region', { name: 'Hoy' });
+    expect(within(hoy).getByText(/Flor fumada · 0,5 g · Gelato/)).toBeInTheDocument();
+    await user.click(within(hoy).getByRole('button', { name: 'Repetir la última' }));
+    expect(await screen.findByText(/Anotado: Flor fumada · 0,5 g · Gelato/)).toBeInTheDocument();
+    await waitFor(() => expect(within(hoy).getByText('Sesiones').nextElementSibling).toHaveTextContent('1'));
+    expect((await repo.load()).data.consumption).toHaveLength(2);
+
+    await user.click(screen.getByRole('button', { name: 'Deshacer' }));
+    await waitFor(() => expect(within(hoy).getByText('Sesiones').nextElementSibling).toHaveTextContent('0'));
+    expect((await repo.load()).data.consumption.map((e) => e.notes)).toEqual(['original']);
   });
 });

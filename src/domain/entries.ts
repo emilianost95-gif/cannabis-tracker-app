@@ -41,9 +41,11 @@ export interface ConsumptionFormValues {
   costText: string;
   currency: Currency;
   notes: string;
+  strainText: string;
+  effectRating: number | null;
 }
 
-export type FormErrors = Partial<Record<'occurredAt' | 'quantity' | 'unit' | 'cost' | 'notes' | 'form', string>>;
+export type FormErrors = Partial<Record<'occurredAt' | 'quantity' | 'unit' | 'cost' | 'notes' | 'strain' | 'form', string>>;
 
 export const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 export const EARLIEST_DATE = '2000-01-01T00:00:00.000Z';
@@ -95,6 +97,8 @@ export function buildConsumptionEntry(
     stress: v.stress,
     cost,
     notes: v.notes.trim(),
+    strain: v.strainText.trim().replace(/\s+/g, ' ') || null,
+    effectRating: v.effectRating,
     createdAt: opts.existing?.createdAt ?? nowIso,
     updatedAt: nowIso,
   };
@@ -107,6 +111,7 @@ export function buildConsumptionEntry(
       else if (key === 'notes') out.notes = 'Las notas pueden tener como máximo 1000 caracteres';
       else if (key === 'cost') out.cost = issue.message;
       else if (key === 'occurredAt') out.occurredAt = issue.message;
+      else if (key === 'strain') out.strain = 'La variedad puede tener como máximo 60 caracteres';
       else out.form = issue.message;
     }
     return { ok: false, errors: out };
@@ -129,4 +134,39 @@ export function findPossibleDuplicate(entries: ConsumptionEntry[], candidate: Co
         (e.quantity?.value ?? null) === (candidate.quantity?.value ?? null),
     ) ?? null
   );
+}
+
+/** Última sesión registrada (por fecha de la sesión), o null. */
+export function lastEntry(entries: ConsumptionEntry[]): ConsumptionEntry | null {
+  let last: ConsumptionEntry | null = null;
+  for (const e of entries) if (!last || e.occurredAt > last.occurredAt) last = e;
+  return last;
+}
+
+/**
+ * «Repetir la última»: misma forma de consumo, cantidad, contexto y variedad,
+ * ahora. No copia estado de ánimo, notas ni cómo te cayó (son de ese momento).
+ * Un importe pagado NO se copia (sería contar dos veces una compra); un valor
+ * estimado se recalcula con el precio de referencia actual.
+ */
+export function buildRepeatEntry(last: ConsumptionEntry, refs: ReferencePrice[], now: Date, id: string): ConsumptionEntry {
+  const est = last.cost?.kind === 'estimated' ? estimateCost(last.quantity, refs) : null;
+  const iso = now.toISOString();
+  return consumptionEntry.parse({
+    id,
+    schemaVersion: SCHEMA_VERSION,
+    occurredAt: iso,
+    method: last.method,
+    quantity: last.quantity,
+    context: last.context,
+    moodBefore: null,
+    sleepQuality: null,
+    stress: null,
+    cost: est ? { kind: 'estimated', ...est } : null,
+    notes: '',
+    strain: last.strain,
+    effectRating: null,
+    createdAt: iso,
+    updatedAt: iso,
+  });
 }

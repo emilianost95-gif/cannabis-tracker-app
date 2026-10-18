@@ -36,8 +36,9 @@ import { capitalize, formatDay, formatMoney, formatNumber, formatPeriod, formatS
 import { comparedRange, type RangePreset } from '@/utils/dates';
 import { TrendLine } from './Trend';
 import { CalendarHeatmap, Donut } from '@/components/patternCharts';
+import { strainSummaries } from '@/domain/strains';
 import { Humito } from '@/components/brand';
-import { addDaysKey } from '@/utils/dates';
+import { addDaysKey, dayKeyOfIso } from '@/utils/dates';
 import { GoalStatusBadge } from '@/features/goals/goalView';
 
 const RANGES: { value: RangePreset; label: string }[] = [
@@ -86,6 +87,7 @@ export function StatsPage() {
       weekdays: weekdayAverages(data.consumption, range.current, start),
       methods: methodDistribution(inRange),
       heat: sessionsByDay(data.consumption),
+      strains: strainSummaries(inRange),
     };
   }, [data, preset, today, cur]);
 
@@ -222,6 +224,52 @@ export function StatsPage() {
               centerLabel="sesiones"
               slices={s.methods.map((m) => ({ key: m.method, label: m.method === 'others' ? 'Otros' : t.methods[m.method], value: m.count }))}
             />
+          )}
+        </Card>
+
+        <Card title="Tus variedades" className="lg:col-span-2">
+          {s.strains.length === 0 ? (
+            <p className="text-sm text-fg-muted">
+              Ninguna sesión de este período tiene variedad anotada. Podés agregarla al registrar (campo «Variedad»).
+            </p>
+          ) : (
+            <div className="-mx-1 overflow-x-auto">
+              <table className="w-full min-w-[28rem] text-sm">
+                <caption className="sr-only">Variedades usadas en el período</caption>
+                <thead>
+                  <tr className="text-left text-xs text-fg-subtle">
+                    <th scope="col" className="px-1 pb-2 font-medium">Variedad</th>
+                    <th scope="col" className="px-1 pb-2 text-right font-medium">Sesiones</th>
+                    <th scope="col" className="px-1 pb-2 font-medium">¿Cómo te cayó? (promedio)</th>
+                    <th scope="col" className="px-1 pb-2 text-right font-medium">Última vez</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {s.strains.slice(0, 10).map((st) => (
+                    <tr key={st.name}>
+                      <th scope="row" className="px-1 py-2 text-left font-medium text-fg">{st.name}</th>
+                      <td className="num px-1 py-2 text-right">{st.sessions}</td>
+                      <td className="px-1 py-2">
+                        {st.averageRating === null ? (
+                          <span className="text-fg-subtle">Sin dato</span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-3" aria-hidden>
+                              <span className="block h-full rounded-full bg-accent" style={{ width: `${(st.averageRating / 5) * 100}%` }} />
+                            </span>
+                            <span className="num text-fg-muted">
+                              {formatNumber(st.averageRating, 1)}/5 <span className="text-fg-subtle">({st.rated})</span>
+                            </span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="num px-1 py-2 text-right text-fg-muted">{formatShortDay(dayKeyOfIso(st.lastUsed))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-xs text-fg-subtle">Es lo que anotaste vos, no una recomendación. Entre paréntesis: cuántas sesiones calificaste.</p>
+            </div>
           )}
         </Card>
 

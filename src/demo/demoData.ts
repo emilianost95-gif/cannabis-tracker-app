@@ -137,6 +137,17 @@ export function generateDemoData(now: Date = new Date(), seed = 420): AppData {
           quantity?.unit === 'g'
             ? { kind: 'estimated', amountMinor: Math.round((quantity.value * 8000) / 10) * 10, currency: 'CLP' }
             : null,
+        strain:
+          method === 'edible'
+            ? null
+            : pick(r, [
+                ['Amnesia', 30],
+                ['Northern Lights', 22],
+                ['Gelato', 18],
+                ['Haze del amigo', 12],
+                [null, 18],
+              ] as const),
+        effectRating: r() < 0.45 ? clamp(3.4 + (r() - 0.5) * 2.4, 1, 5) : null,
         notes: s === 0 && r() < 0.08 ? pick(r, [['Después del laburo', 1], ['Con amigos en la plaza', 1], ['Para bajar antes de dormir', 1]] as const) : '',
         createdAt: occurredAt,
         updatedAt: occurredAt,

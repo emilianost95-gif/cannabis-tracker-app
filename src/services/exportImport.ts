@@ -117,6 +117,8 @@ export const CSV_HEADERS = [
   'importe',
   'moneda',
   'tipo_importe',
+  'variedad',
+  'como_cayo_1a5',
   'notas',
 ] as const;
 
@@ -139,6 +141,8 @@ export function consumptionCsv(data: AppData): string {
         e.cost ? minorToDecimal(e.cost.amountMinor, MINOR_DIGITS[e.cost.currency]) : null,
         e.cost ? e.cost.currency : null,
         e.cost ? (e.cost.kind === 'paid' ? 'pagado' : 'estimado') : null,
+        e.strain,
+        e.effectRating,
         e.notes || null,
       ]
         .map(csvCell)

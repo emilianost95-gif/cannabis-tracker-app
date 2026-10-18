@@ -26,6 +26,7 @@ import { formatMoneyObj, formatNumber, t } from '@/i18n';
 import { dayKey } from '@/utils/dates';
 
 const FIELD_LABELS: Record<OptionalField, string> = {
+  strain: 'Variedad y cómo te cayó',
   context: 'Contexto o motivo',
   moodBefore: 'Ánimo antes',
   sleepQuality: 'Calidad del sueño previo',

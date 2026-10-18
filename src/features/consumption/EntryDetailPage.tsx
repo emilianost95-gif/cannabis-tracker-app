@@ -81,6 +81,8 @@ export function EntryDetailPage() {
       />
       <dl className="card divide-y divide-border">
         <Row label="Cantidad">{e.quantity ? <span className="num">{formatQuantity(e.quantity)}</span> : <Unknown />}</Row>
+        <Row label="Variedad">{e.strain ?? <Unknown />}</Row>
+        <Row label="¿Cómo te cayó?">{e.effectRating === null ? <Unknown /> : <span className="num">{`${e.effectRating} de 5 · ${t.scales.effect[e.effectRating - 1]}`}</span>}</Row>
         <Row label="Contexto">{e.context ? t.contexts[e.context] : <Unknown />}</Row>
         <Row label="Ánimo antes">{scaleText(e.moodBefore, t.scales.mood)}</Row>
         <Row label="Sueño previo">{scaleText(e.sleepQuality, t.scales.sleep)}</Row>

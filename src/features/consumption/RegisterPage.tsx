@@ -16,6 +16,7 @@ import {
 } from '@/domain/entries';
 import { minorToInput } from '@/domain/money';
 import { parseQuantityInput } from '@/domain/quantity';
+import { strainNames } from '@/domain/strains';
 import { formatDateTime, formatMoneyObj, t } from '@/i18n';
 import { isoToLocalInput } from '@/utils/dates';
 import { newId } from '@/utils/id';
@@ -46,6 +47,8 @@ function initialValues(existing: ConsumptionEntry | undefined, defaults: { metho
       costText: existing.cost?.kind === 'paid' ? minorToInput(existing.cost.amountMinor, existing.cost.currency) : '',
       currency: existing.cost?.currency ?? defaults.currency,
       notes: existing.notes,
+      strainText: existing.strain ?? '',
+      effectRating: existing.effectRating,
     };
   }
   return {
@@ -61,6 +64,8 @@ function initialValues(existing: ConsumptionEntry | undefined, defaults: { metho
     costText: '',
     currency: defaults.currency,
     notes: '',
+    strainText: '',
+    effectRating: null,
   };
 }
 
@@ -109,6 +114,7 @@ function ConsumptionForm({ existing }: { existing?: ConsumptionEntry }) {
   const set = <K extends keyof ConsumptionFormValues>(k: K, val: ConsumptionFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
 
   const parsedQty = parseQuantityInput(v.quantityText);
+  const knownStrains = useMemo(() => strainNames(data.consumption), [data.consumption]);
   const estimate = useMemo(
     () => (parsedQty !== null && v.unit ? estimateCost({ value: parsedQty, unit: v.unit }, prefs.referencePrices) : null),
     [parsedQty, v.unit, prefs.referencePrices],
@@ -244,6 +250,35 @@ function ConsumptionForm({ existing }: { existing?: ConsumptionEntry }) {
               </Field>
             </div>
           </div>
+
+          {fields.strain && (
+            <div className="grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-start" data-field="strain">
+              <Field label="Variedad" optional error={errors.strain} hint="Texto libre; te sugiere las que ya usaste.">
+                {({ id, describedBy, invalid }) => (
+                  <>
+                    <input
+                      id={id}
+                      list="variedades-usadas"
+                      autoComplete="off"
+                      maxLength={60}
+                      className="field-input"
+                      placeholder="Ej.: Amnesia"
+                      value={v.strainText}
+                      onChange={(e) => set('strainText', e.target.value)}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
+                    />
+                    <datalist id="variedades-usadas">
+                      {knownStrains.map((s) => (
+                        <option key={s} value={s} />
+                      ))}
+                    </datalist>
+                  </>
+                )}
+              </Field>
+              <ScalePicker legend="¿Cómo te cayó?" value={v.effectRating} onChange={(x) => set('effectRating', x)} labels={t.scales.effect} />
+            </div>
+          )}
 
           {fields.context && (
             <Segmented

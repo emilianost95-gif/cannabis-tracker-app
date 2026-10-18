@@ -3,23 +3,28 @@ import { CircleAlert, CircleCheck, X } from 'lucide-react';
 import { cx } from './ui';
 
 type Tone = 'success' | 'error';
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 interface ToastItem {
   id: number;
   tone: Tone;
   message: string;
+  action?: ToastAction;
 }
 
-const Ctx = createContext<((message: string, tone?: Tone) => void) | null>(null);
+const Ctx = createContext<((message: string, tone?: Tone, action?: ToastAction) => void) | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
   const next = useRef(1);
   const dismiss = useCallback((id: number) => setItems((xs) => xs.filter((x) => x.id !== id)), []);
   const push = useCallback(
-    (message: string, tone: Tone = 'success') => {
+    (message: string, tone: Tone = 'success', action?: ToastAction) => {
       const id = next.current++;
-      setItems((xs) => [...xs.slice(-2), { id, tone, message }]);
-      setTimeout(() => dismiss(id), tone === 'error' ? 8000 : 3500);
+      setItems((xs) => [...xs.slice(-2), { id, tone, message, action }]);
+      setTimeout(() => dismiss(id), tone === 'error' ? 8000 : action ? 7000 : 3500);
     },
     [dismiss],
   );
@@ -46,6 +51,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <CircleCheck aria-hidden size={18} className="mt-0.5 shrink-0 text-accent" />
             )}
             <span className="flex-1">{t.message}</span>
+            {t.action && (
+              <button
+                type="button"
+                className="-my-1 rounded px-2 py-1 text-sm font-semibold text-accent hover:bg-surface-2"
+                onClick={() => {
+                  t.action!.onClick();
+                  dismiss(t.id);
+                }}
+              >
+                {t.action.label}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => dismiss(t.id)}

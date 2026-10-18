@@ -17,7 +17,7 @@ describe('exportación JSON', () => {
     const f = buildExport(data, new Date('2026-10-18T15:00:00.000Z'));
     expect(f.meta).toEqual({
       app: 'fumometro',
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: '2026-10-18T15:00:00.000Z',
       counts: { consumption: 2, checkins: 1, expenses: 1, goals: 1 },
     });
@@ -106,5 +106,26 @@ describe('compatibilidad', () => {
     const f = JSON.parse(exportJson(data));
     f.meta.app = 'ritmo';
     expect(parseImport(JSON.stringify(f)).ok).toBe(true);
+  });
+});
+
+describe('copias de versiones anteriores', () => {
+  it('importa una copia v1 (sin variedades) y la lleva a v2', () => {
+    const f = JSON.parse(exportJson(data));
+    f.meta.schemaVersion = 1;
+    f.meta.app = 'ritmo';
+    for (const e of f.consumption) {
+      delete e.strain;
+      delete e.effectRating;
+      e.schemaVersion = 1;
+    }
+    delete f.preferences.enabledFields.strain;
+    f.preferences.schemaVersion = 1;
+    const r = parseImport(JSON.stringify(f));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.consumption.every((e) => e.schemaVersion === 2 && e.strain === null)).toBe(true);
+      expect(r.data.preferences.enabledFields.strain).toBe(true);
+    }
   });
 });

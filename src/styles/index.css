@@ -106,6 +106,8 @@
     font-variant-numeric: tabular-nums;
   }
   .card {
+    /* Como ítem de grilla no puede crecer más que su columna (tablas anchas hacen scroll adentro). */
+    min-width: 0;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);

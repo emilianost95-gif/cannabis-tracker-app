@@ -31,10 +31,10 @@ test('registrar, recargar, editar y eliminar', async ({ page }) => {
 
   await register(page, { qty: '0,5', notes: 'e2e original' });
   const today = page.getByRole('region', { name: 'Hoy' });
-  await expect(today.getByText('0,5 g')).toBeVisible();
+  await expect(today.getByText('Cantidad: 0,5 g')).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole('region', { name: 'Hoy' }).getByText('0,5 g')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Hoy' }).getByText('Cantidad: 0,5 g')).toBeVisible();
 
   await primaryNav(page, 'Historial');
   await page.getByRole('link', { name: /Flor fumada a las .* ver detalle/ }).click();
@@ -161,4 +161,33 @@ test('bienvenida en el primer uso', async ({ browser }) => {
   await page.getByRole('button', { name: 'Ver la demo primero' }).click();
   await expect(page.getByText(/Todo lo que ves son datos de ejemplo/)).toBeVisible();
   await ctx.close();
+});
+
+test('tarjeta de la semana: se genera una imagen PNG en el dispositivo', async ({ page }, info) => {
+  const requests: string[] = [];
+  page.on('request', (r) => requests.push(r.url()));
+  await page.goto('/#/demo');
+  await page.getByRole('button', { name: 'Compartir mi semana' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Compartir mi semana' });
+  await expect(dialog.getByRole('img', { name: 'Vista previa de la tarjeta de tu semana' })).toBeVisible();
+  const [dl] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'Descargar' }).click()]);
+  expect(dl.suggestedFilename()).toMatch(/^fumometro-semana-\d{4}-\d{2}-\d{2}\.png$/);
+  const path = info.outputPath('tarjeta.png');
+  await dl.saveAs(path);
+  const { statSync } = await import('node:fs');
+  expect(statSync(path).size).toBeGreaterThan(20_000);
+  // La imagen se crea localmente: ninguna petición fuera del propio sitio.
+  expect(requests.every((u) => u.startsWith('http://localhost:4317') || u.startsWith('data:') || u.startsWith('blob:'))).toBe(true);
+});
+
+test('repetir la última sesión y deshacer', async ({ page }) => {
+  await page.goto('/');
+  await register(page, { qty: '0,5' });
+  const hoy = page.getByRole('region', { name: 'Hoy' });
+  await expect(hoy.getByText('Sesiones', { exact: true }).locator('xpath=following-sibling::div[1]')).toHaveText('1');
+  await hoy.getByRole('button', { name: 'Repetir la última' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Sí, anotar otra' }).click(); // la anterior fue hace menos de 10 min
+  await expect(hoy.getByText('Sesiones', { exact: true }).locator('xpath=following-sibling::div[1]')).toHaveText('2');
+  await page.getByRole('button', { name: 'Deshacer' }).click();
+  await expect(hoy.getByText('Sesiones', { exact: true }).locator('xpath=following-sibling::div[1]')).toHaveText('1');
 });

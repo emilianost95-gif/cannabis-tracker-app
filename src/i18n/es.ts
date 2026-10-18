@@ -73,6 +73,7 @@ export const es = {
     stress: ['Muy bajo', 'Bajo', 'Medio', 'Alto', 'Muy alto'],
     sleep: ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Muy bueno'],
     craving: ['Nada', 'Poco', 'Moderado', 'Bastante', 'Mucho'],
+    effect: ['Mal', 'Regular', 'Bien', 'Muy bien', 'Excelente'],
   },
 } as const;
 

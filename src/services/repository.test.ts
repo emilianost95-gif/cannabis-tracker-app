@@ -80,3 +80,16 @@ describe('MemoryRepository', () => {
     expect((await repo.load()).data.consumption).toEqual([]);
   });
 });
+
+describe('migración en lectura', () => {
+  it('registros v1 guardados antes de «variedad» se leen sin pérdida', async () => {
+    const repo = await IndexedDbRepository.open();
+    const { strain: _s, effectRating: _e, ...v1 } = { ...testEntry('2026-10-01 20:00', { notes: 'viejo' }), schemaVersion: 1 };
+    const db = await openDB(DB_NAME);
+    await db.put('consumption', v1);
+    db.close();
+    const { data, skipped } = await repo.load();
+    expect(skipped).toBe(0);
+    expect(data.consumption[0]).toMatchObject({ notes: 'viejo', schemaVersion: 2, strain: null, effectRating: null });
+  });
+});

@@ -37,6 +37,8 @@ export function testEntry(at: string, over: Partial<ConsumptionEntry> = {}): Con
     stress: null,
     cost: null,
     notes: '',
+    strain: null,
+    effectRating: null,
     createdAt: STAMP,
     updatedAt: STAMP,
     ...over,

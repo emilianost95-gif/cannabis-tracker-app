@@ -11,6 +11,9 @@ Aplicación web progresiva (PWA) para que personas adultas registren, visualicen
 - **Bienvenida** de 3 pasos en el primer uso (nombre y moneda opcionales, o ir directo a la demo).
 - **Copias con contraseña:** AES-256-GCM con clave derivada por PBKDF2-SHA-256 (600 000 iteraciones), todo con Web Crypto en el navegador ([`encryptedBackup.ts`](src/services/encryptedBackup.ts)). En el celular se comparten con el menú nativo (WhatsApp, AirDrop, mail). La importación detecta la copia cifrada y pide la contraseña.
 - **Logros sin humo** ([`achievements.ts`](src/domain/achievements.ts)): rachas, finde sin humo, semana bajo tu promedio, metas cumplidas, constancia del registro personal y mes dentro del presupuesto. Ninguno se puede ganar consumiendo más.
+- **Variedades:** nombre libre con autocompletado y «¿cómo te cayó?» (1–5) por sesión; en Estadísticas, las que más usás con tu propia calificación promedio (descriptivo, sin recomendaciones).
+- **Repetir la última** sesión con un toque y «Deshacer». No copia importes pagados (evita contar dos veces una compra) y recalcula los estimados.
+- **Tarjeta «Mi semana»** (1080×1920) para compartir en historias: se dibuja en un canvas en el dispositivo; por defecto solo muestra días sin humo y racha.
 - **Recordatorio diario** como evento de calendario `.ics` (iPhone y Android, título discreto opcional) y aviso suave en la app desde las 19 h si no anotaste cómo estás.
 
 ## Modo demo
@@ -86,11 +89,13 @@ tests/
 
 Las reglas de negocio (`src/domain`) son funciones puras sin React, probadas de forma aislada.
 
-## Modelo de datos (esquema v1)
+## Modelo de datos (esquema v2)
+
+v2 agregó `strain` y `effectRating` con valores por defecto: los registros y copias v1 se leen y se normalizan a v2 sin pérdida (probado).
 
 Definido en [`src/domain/model.ts`](src/domain/model.ts). Todos los registros llevan `id` (UUID aleatorio), `schemaVersion`, `createdAt` y `updatedAt`.
 
-- **ConsumptionEntry** — `occurredAt` (instante ISO UTC), `method` (formato), `quantity: {value, unit} | null`, `context | null`, `moodBefore`, `sleepQuality`, `stress` (1–5 o `null` = sin dato), `cost | null`, `notes`.
+- **ConsumptionEntry** — `occurredAt` (instante ISO UTC), `method` (formato), `quantity: {value, unit} | null`, `context | null`, `moodBefore`, `sleepQuality`, `stress` (1–5 o `null` = sin dato), `cost | null`, `notes`, `strain | null` y `effectRating` (1–5 | null) desde el esquema v2.
 - **MoodCheckIn** — registro personal independiente del consumo: ánimo, estrés, sueño (1–5), deseo de consumir (0–4), motivo, notas. Exige al menos un campo.
 - **ExpenseEntry** — compra real: fecha local, importe, categoría, cantidad comprada opcional.
 - **PersonalGoal** — unión discriminada por `target.type` (`reduce_frequency`, `spending_limit`, `free_days`, `pause`, `daily_log`, `observe`), con fechas, estado e intervalos de pausa.
@@ -125,8 +130,8 @@ Navegación por teclado, enlace «Saltar al contenido», foco visible, foco movi
 Ejecutado en Windows 11, Node 24.21:
 
 - `npm run typecheck` ✔ · `npm run lint` ✔ · `npm run build` ✔
-- `npm test` ✔ — 141 pruebas (dominio, logros, patrones, cifrado, recordatorios, datos de demo, persistencia, import/export e integración de flujos: demo, bienvenida y copia cifrada).
-- `npm run test:e2e` ✔ — 16 pruebas (8 flujos × escritorio y móvil Pixel 7) sobre el build de producción.
+- `npm test` ✔ — 157 pruebas (dominio, logros, variedades, migración v1→v2, tarjeta, patrones, cifrado, recordatorios, datos de demo, persistencia, import/export e integración de flujos: demo, bienvenida, copia cifrada y repetir con deshacer).
+- `npm run test:e2e` ✔ — 20 pruebas (10 flujos × escritorio y móvil Pixel 7) sobre el build de producción, incluida la generación real del PNG de la tarjeta sin peticiones externas.
 
 ## Limitaciones conocidas
 
