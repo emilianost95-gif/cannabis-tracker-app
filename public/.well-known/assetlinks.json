@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.fumometro.twa",
+      "sha256_cert_fingerprints": ["BC:18:45:A3:F2:BF:ED:66:CF:7A:F8:81:B6:4A:EA:52:34:12:6B:4E:58:2D:B2:EC:75:B9:3F:B5:D2:F5:C9:0D"]
+    }
+  }
+]
