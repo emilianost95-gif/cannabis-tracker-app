@@ -1,8 +1,8 @@
 {
   "packageId": "app.fumometro.twa",
   "host": "fumometro.onrender.com",
-  "name": "FumÃ³metro",
-  "launcherName": "FumÃ³metro",
+  "name": "Fumómetro",
+  "launcherName": "Fumómetro",
   "display": "standalone",
   "themeColor": "#0B0C0E",
   "themeColorDark": "#000000",

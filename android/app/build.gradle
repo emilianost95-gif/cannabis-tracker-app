@@ -24,8 +24,8 @@ def twaManifest = [
     applicationId: 'app.fumometro.twa',
     hostName: 'fumometro.onrender.com', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
-    name: 'FumÃ³metro', // The application name.
-    launcherName: 'FumÃ³metro', // The name shown on the Android Launcher.
+    name: 'Fumómetro', // The application name.
+    launcherName: 'Fumómetro', // The name shown on the Android Launcher.
     themeColor: '#0B0C0E', // The color used for the status bar.
     themeColorDark: '#000000', // The color used for the dark status bar.
     navigationColor: '#000000', // The color used for the navigation bar.
