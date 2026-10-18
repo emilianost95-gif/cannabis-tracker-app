@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, Check, Flag, Leaf, Pencil, Plus, Target, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, Flag, FlaskConical, Pencil, Plus, Target, Wallet } from 'lucide-react';
 import { useData } from '@/state/DataContext';
 import { useToday } from '@/state/useToday';
 import { storageErrorMessage, useToast } from '@/components/Toast';
-import { Button, Card, EmptyState, LinkButton, Stat, cx } from '@/components/ui';
+import { Button, Card, LinkButton, Stat, cx } from '@/components/ui';
+import { Humito, HumitoSays, SmokeWisps, type HumitoMood } from '@/components/brand';
+import { WeekGauge } from '@/components/patternCharts';
 import { BarSeries } from '@/components/charts';
 import {
   budgetStatus,
@@ -13,6 +15,7 @@ import {
   entriesInPeriod,
   estimatedUsage,
   freeDays,
+  previousWeeksAverage,
   quantityTotals,
   realSpending,
   trackingStart,
@@ -27,7 +30,21 @@ import { GoalStatusBadge, progressRatio, progressText } from '@/features/goals/g
 
 function greeting(now: Date): string {
   const h = now.getHours();
-  return h < 6 ? 'Buenas noches' : h < 13 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+  return h < 6 ? 'Trasnochando' : h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+}
+
+/** Lo que dice Humito: describe tus datos sin juzgar ni empujar a fumar. */
+function humitoLine(week: number, avg: number | null, freeSoFar: number | null): { mood: HumitoMood; text: string } {
+  if (week === 0) {
+    return {
+      mood: 'happy',
+      text: freeSoFar ? `Semana sin humo hasta ahora: ${plural(freeSoFar, 'día', 'días')} y contando.` : 'Esta semana todavía no anotaste humo.',
+    };
+  }
+  if (avg === null) return { mood: 'chill', text: `Vas ${plural(week, 'sesión', 'sesiones')} esta semana. Con un par de semanas más te muestro tu promedio.` };
+  if (week < avg) return { mood: 'happy', text: `Vas ${week} esta semana y tu promedio venía en ${formatNumber(avg, 1)}. Tranqui, a tu ritmo.` };
+  if (week > avg) return { mood: 'curious', text: `Vas ${week} esta semana; tu promedio era ${formatNumber(avg, 1)}. Es solo un dato, sin drama.` };
+  return { mood: 'chill', text: `Vas ${week}, justo en tu promedio semanal.` };
 }
 
 export function DashboardPage() {
@@ -57,6 +74,11 @@ export function DashboardPage() {
       monthSpend: realSpending(data.expenses, data.consumption, monthSoFar),
       monthEstimated: estimatedUsage(data.consumption, monthSoFar),
       comparison: comparePeriods(data.consumption, comparedRange('7d', today), start),
+      avg4: previousWeeksAverage(data.consumption, week.from, 4, start),
+      weekLimit: (() => {
+        const g = data.goals.find((x) => x.status === 'active' && x.target.type === 'reduce_frequency');
+        return g?.target.type === 'reduce_frequency' ? g.target.maxSessionsPerWeek : null;
+      })(),
       last7: dailyCounts(data.consumption, last7, start),
       goals: data.goals
         .filter((g) => g.status === 'active')
@@ -67,6 +89,7 @@ export function DashboardPage() {
 
   const isEmpty = data.consumption.length === 0 && data.checkins.length === 0 && data.expenses.length === 0;
   const name = prefs.displayName.trim();
+  const line = humitoLine(m.weekCount, m.avg4, m.weekFree?.free ?? null);
 
   return (
     <>
@@ -74,36 +97,78 @@ export function DashboardPage() {
         <div>
           <p className="text-sm text-fg-muted">
             {greeting(new Date())}
-            {name ? `, ${name}` : ''}
+            {name ? `, ${name}` : ''} · ¿cómo viene la mano?
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{capitalize(formatDay(today))}</h1>
         </div>
         <LinkButton to="/registrar" variant="primary" icon={Plus} className="hidden sm:inline-flex">
-          Registrar consumo
+          Anotar sesión
         </LinkButton>
       </header>
 
       {isEmpty ? (
-        <div className="card">
-          <EmptyState
-            icon={Leaf}
-            title="Tu registro empieza acá"
-            action={
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <LinkButton to="/registrar" variant="primary" icon={Plus}>
-                  Registrar un consumo
-                </LinkButton>
-                <LinkButton to="/diario">Anotar cómo estoy</LinkButton>
-              </div>
-            }
-          >
-            Cuando registres tu primera sesión, este panel mostrará tu frecuencia, tu gasto y cómo avanzan tus objetivos. Todo se
-            calcula con tus datos y se guarda solo en este dispositivo.
-          </EmptyState>
+        <div className="card relative overflow-hidden px-4 py-10 text-center sm:py-14">
+          <SmokeWisps className="absolute inset-x-0 bottom-0 h-40 w-full" />
+          <Humito mood="sleepy" className="relative mx-auto w-36" />
+          <h2 className="relative mt-4 font-display text-2xl font-semibold">Todavía no hay humo por acá</h2>
+          <p className="relative mx-auto mt-2 max-w-md text-sm text-fg-muted">
+            Anotá tu primera sesión y el Fumómetro empieza a medir: cuánto, cuándo, en qué situación y cuánta plata se va en humo. Todo
+            queda solo en este dispositivo.
+          </p>
+          <div className="relative mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+            <LinkButton to="/registrar" variant="primary" icon={Plus}>
+              Anotar mi primera sesión
+            </LinkButton>
+            <LinkButton to="/demo" icon={FlaskConical}>
+              Ver la demo
+            </LinkButton>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-6">
-          <Card title="Hoy" icon={CalendarDays} className="lg:col-span-3">
+          <section aria-labelledby="fumometro-semana" className="card relative overflow-hidden p-4 sm:p-6 lg:col-span-6">
+            <SmokeWisps className="absolute inset-x-0 bottom-0 h-24 w-full" />
+            <div className="relative grid items-center gap-6 md:grid-cols-[minmax(0,22rem)_1fr]">
+              <div>
+                <h2 id="fumometro-semana" className="eyebrow mb-2">
+                  Fumómetro de la semana
+                </h2>
+                <WeekGauge
+                  value={m.weekCount}
+                  caption={`${m.weekCount} sesiones esta semana${m.avg4 !== null ? `, promedio anterior ${m.avg4}` : ''}${m.weekLimit !== null ? `, meta máximo ${m.weekLimit}` : ''}`}
+                  markers={[
+                    ...(m.avg4 !== null ? [{ value: m.avg4, label: `Tu promedio: ${formatNumber(m.avg4, 1)}/sem`, tone: 'cyan' as const }] : []),
+                    ...(m.weekLimit !== null ? [{ value: m.weekLimit, label: `Tu meta: máx. ${m.weekLimit}`, tone: 'fg' as const }] : []),
+                  ]}
+                >
+                  <p className="-mt-1 mb-2 text-center md:max-w-[22rem]">
+                    <span className="num font-display text-4xl font-semibold text-fg">{m.weekCount}</span>{' '}
+                    <span className="text-sm text-fg-muted">{m.weekCount === 1 ? 'sesión' : 'sesiones'} de lunes a hoy</span>
+                  </p>
+                </WeekGauge>
+              </div>
+              <div className="grid gap-5">
+                <HumitoSays mood={line.mood}>{line.text}</HumitoSays>
+                <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+                  <Stat
+                    label="Días sin humo"
+                    value={m.weekFree && m.weekFree.tracked > 0 ? `${m.weekFree.free} de ${m.weekFree.tracked}` : '—'}
+                    hint={
+                      m.weekFree === null || m.weekFree.tracked === 0
+                        ? 'Se cuentan los días ya terminados.'
+                        : m.weekFree.untracked > 0
+                          ? `${plural(m.weekFree.untracked, 'día', 'días')} sin datos no se cuentan.`
+                          : 'Días ya terminados'
+                    }
+                  />
+                  <Stat label="Plata en humo (semana)" value={formatMoney(totalIn(m.weekSpend, cur), cur)} hint="Gasto real registrado" />
+                </div>
+                <TrendLine c={m.comparison} />
+              </div>
+            </div>
+          </section>
+
+          <Card title="Hoy" icon={CalendarDays} className="lg:col-span-2">
             <div className="grid grid-cols-2 gap-4">
               <Stat label="Sesiones" value={m.todayCount} />
               <Stat
@@ -124,26 +189,6 @@ export function DashboardPage() {
                   {m.todayQty.withoutQuantity > 0 && ` · ${plural(m.todayQty.withoutQuantity, 'sesión', 'sesiones')} sin cantidad`}
                 </>
               )}
-            </div>
-          </Card>
-
-          <Card title="Esta semana" icon={CalendarDays} className="lg:col-span-3">
-            <div className="grid grid-cols-2 gap-4">
-              <Stat label="Sesiones (lun. a hoy)" value={m.weekCount} />
-              <Stat
-                label="Días sin consumo"
-                value={m.weekFree && m.weekFree.tracked > 0 ? `${m.weekFree.free} de ${m.weekFree.tracked}` : '—'}
-                hint={
-                  m.weekFree === null || m.weekFree.tracked === 0
-                    ? 'Se cuenta cuando termine un día registrado: hoy todavía no terminó.'
-                    : m.weekFree.untracked > 0
-                      ? `Días ya terminados. ${plural(m.weekFree.untracked, 'día', 'días')} sin datos no se cuentan.`
-                      : 'Días ya terminados'
-                }
-              />
-            </div>
-            <div className="mt-4 border-t border-border pt-3">
-              <TrendLine c={m.comparison} />
             </div>
           </Card>
 

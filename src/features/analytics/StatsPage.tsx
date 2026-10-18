@@ -21,6 +21,11 @@ import {
   realSpending,
   trackingStart,
   weeklyCounts,
+  hourDistribution,
+  methodDistribution,
+  peakHour,
+  sessionsByDay,
+  weekdayAverages,
   type CheckinMetric,
 } from '@/domain/analytics';
 import { complianceRate, evaluateGoal } from '@/domain/goals';
@@ -30,6 +35,9 @@ import { unitsPresent } from '@/domain/quantity';
 import { capitalize, formatDay, formatMoney, formatNumber, formatPeriod, formatShortDay, formatTotals, plural, t } from '@/i18n';
 import { comparedRange, type RangePreset } from '@/utils/dates';
 import { TrendLine } from './Trend';
+import { CalendarHeatmap, Donut } from '@/components/patternCharts';
+import { Humito } from '@/components/brand';
+import { addDaysKey } from '@/utils/dates';
 import { GoalStatusBadge } from '@/features/goals/goalView';
 
 const RANGES: { value: RangePreset; label: string }[] = [
@@ -74,6 +82,10 @@ export function StatsPage() {
       estimated: estimatedUsage(data.consumption, range.current),
       spendDaily: dailySpending(data.expenses, data.consumption, range.current, cur),
       goals: data.goals.map((g) => ({ g, ev: evaluateGoal(g, data, today) })),
+      hours: hourDistribution(inRange),
+      weekdays: weekdayAverages(data.consumption, range.current, start),
+      methods: methodDistribution(inRange),
+      heat: sessionsByDay(data.consumption),
     };
   }, [data, preset, today, cur]);
 
@@ -86,7 +98,7 @@ export function StatsPage() {
   if (data.consumption.length === 0 && data.checkins.length === 0 && data.expenses.length === 0) {
     return (
       <>
-        <PageHeader title="Estadísticas" />
+        <PageHeader title="El humo en números" />
         <div className="card">
           <EmptyState
             icon={ChartColumn}
@@ -117,7 +129,7 @@ export function StatsPage() {
 
   return (
     <>
-      <PageHeader title="Estadísticas" description={`Período analizado: ${formatPeriod(s.range.current)}`} />
+      <PageHeader title="El humo en números" description={`Período analizado: ${formatPeriod(s.range.current)}`} />
       <div className="mb-5">
         <Segmented legend="Rango temporal" hideLegend value={preset} onChange={setPreset} options={RANGES} />
       </div>
@@ -132,7 +144,7 @@ export function StatsPage() {
               hint={s.free.untracked > 0 ? 'Solo días con datos' : undefined}
             />
             <Stat
-              label="Días sin consumo"
+              label="Días sin humo"
               value={`${s.free.free} de ${s.free.tracked}`}
               hint={s.free.untracked > 0 ? `${s.free.untracked} días sin datos excluidos` : 'Días registrados'}
             />
@@ -146,6 +158,70 @@ export function StatsPage() {
           </div>
           <h3 className="mb-2 text-xs font-medium text-fg-subtle">Sesiones por día</h3>
           <BarSeries points={dayPoints} caption="Sesiones por día" valueHeader="Sesiones" format={(v) => formatNumber(v, 0)} />
+        </Card>
+
+        <Card title="Calendario de humo (últimas 12 semanas)" className="lg:col-span-2">
+          <CalendarHeatmap
+            from={addDaysKey(today, -83)}
+            to={today}
+            counts={s.heat}
+            start={s.start}
+            caption="Sesiones por día en las últimas 12 semanas"
+          />
+        </Card>
+
+        <Card title="¿A qué hora prendés?">
+          {s.inRange.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin sesiones en este período.</p>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-fg">
+                Tu hora pico: <strong className="num">{peakHour(s.hours)}–{(peakHour(s.hours)! + 1) % 24} h</strong>
+              </p>
+              <BarSeries
+                height={150}
+                caption="Sesiones por hora del día"
+                valueHeader="Sesiones"
+                format={(v) => formatNumber(v, 0)}
+                points={s.hours.map((v, h) => ({ label: h % 3 === 0 ? `${h}h` : '', fullLabel: `${h}:00 a ${h}:59`, value: v }))}
+              />
+            </>
+          )}
+        </Card>
+
+        <Card title="Tu semana tipo">
+          {s.weekdays.every((d) => d.average === null) ? (
+            <p className="text-sm text-fg-muted">Sin días con datos en este período.</p>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-fg-muted">Promedio de sesiones por día de la semana (solo días con datos).</p>
+              <BarSeries
+                height={150}
+                integer={false}
+                caption="Promedio de sesiones por día de la semana"
+                valueHeader="Promedio de sesiones"
+                format={(v) => formatNumber(v, 1)}
+                points={s.weekdays.map((d) => ({
+                  label: ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][d.weekday]!,
+                  fullLabel: `${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][d.weekday]} (${d.days} días con datos)`,
+                  value: d.average ?? 0,
+                  muted: d.average === null,
+                }))}
+              />
+            </>
+          )}
+        </Card>
+
+        <Card title="Cómo lo consumís">
+          {s.methods.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin sesiones en este período.</p>
+          ) : (
+            <Donut
+              caption="Sesiones por formato de consumo"
+              centerLabel="sesiones"
+              slices={s.methods.map((m) => ({ key: m.method, label: m.method === 'others' ? 'Otros' : t.methods[m.method], value: m.count }))}
+            />
+          )}
         </Card>
 
         <Card title="Sesiones por semana">
@@ -371,10 +447,13 @@ export function StatsPage() {
           </Card>
         )}
       </div>
-      <p className="mt-6 text-xs text-fg-subtle">
-        Días y semanas se calculan en la zona horaria de este dispositivo (semanas de lunes a domingo). Los días anteriores a tu
+      <div className="mt-8 flex items-center gap-3 text-xs text-fg-subtle">
+        <Humito mood="curious" className="w-12 shrink-0" float={false} />
+        <p>
+          Días y semanas se calculan en la zona horaria de este dispositivo (semanas de lunes a domingo). Los días anteriores a tu
         primer registro se tratan como «sin datos».
-      </p>
+        </p>
+      </div>
     </>
   );
 }

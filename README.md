@@ -1,8 +1,14 @@
-# Ritmo
+# Fumómetro
 
-Aplicación web progresiva (PWA) para que personas adultas registren, visualicen y comprendan su consumo de cannabis, controlen su gasto y se propongan objetivos personales de reducción o pausa. Enfoque de autoconocimiento y reducción de daños: sin juicios, sin rankings, sin consejos médicos.
+**En vivo:** https://fumometro.onrender.com · **Demo para compartir:** https://fumometro.onrender.com/#/demo
 
-**Local-first:** no hay cuenta ni servidor. Todos los datos viven en el IndexedDB del navegador. El nombre «Ritmo» es deliberadamente discreto para que el ícono instalado no exponga el tema de la app.
+Aplicación web progresiva (PWA) para que personas adultas registren, visualicen y comprendan su consumo de cannabis, controlen su gasto y se propongan objetivos personales de reducción o pausa. Identidad con humor fumón (Humito, la mascota de humo; el velocímetro con aguja de hoja) sin perder el enfoque de autoconocimiento y reducción de daños: sin juicios, sin rankings, sin incentivar el consumo, sin consejos médicos.
+
+**Local-first:** no hay cuenta ni servidor. Todos los datos viven en el IndexedDB del navegador.
+
+## Modo demo
+
+`/#/demo` (o Ajustes → Modo demo) carga 8 semanas de datos de ejemplo generados de forma determinista ([`src/demo/demoData.ts`](src/demo/demoData.ts)), relativos a la fecha actual. Se guardan en una base IndexedDB separada (`fumometro-demo`), un aviso permanente indica que son datos inventados, y «Salir de la demo» los descarta y vuelve a los datos reales, que nunca se leen ni se modifican durante la demo.
 
 ## Stack
 
@@ -12,6 +18,7 @@ Aplicación web progresiva (PWA) para que personas adultas registren, visualicen
 | Build | Vite 7, `vite-plugin-pwa` (service worker + manifiesto) |
 | Estilos | Tailwind CSS 4 con tokens en `@theme` (`src/styles/index.css`) |
 | Navegación | React Router 7 (`HashRouter`: rutas `/#/...`, sin reglas de reescritura en el hosting) |
+| Ilustraciones | SVG en línea propios (logo, Humito, volutas): sin imágenes ni peticiones externas |
 | Gráficos | Recharts 3 |
 | Iconos | Lucide React |
 | Validación | Zod 3 (única fuente de verdad del modelo) |
@@ -48,7 +55,9 @@ Las pruebas fijan `TZ=America/Santiago` (zona con horario de verano) para ejerci
 ```
 src/
   app/            App (rutas), Layout (navegación), PWA, 404
-  components/     ui.tsx (botones, tarjetas, campos, escalas), Dialog, Toast, charts
+  components/     ui.tsx, Dialog, Toast, charts (barras/líneas), patternCharts (velocímetro, calendario,
+                  dona, acumulado), brand (logo y Humito)
+  demo/           generador de datos de ejemplo
   domain/         model.ts (esquemas Zod + tipos), money, quantity, analytics, goals, entries
   features/
     dashboard/    Inicio
@@ -91,7 +100,7 @@ Decisiones clave:
 
 ## Persistencia y privacidad
 
-- IndexedDB (`ritmo`, versión 1) con stores `consumption`, `checkins`, `expenses`, `goals`, `meta`. Migraciones incrementales en el `upgrade` de [`repository.ts`](src/services/repository.ts); las importaciones pasan por `migrate()` antes de validarse.
+- IndexedDB (`fumometro`, versión 1; la demo usa `fumometro-demo`) con stores `consumption`, `checkins`, `expenses`, `goals`, `meta`. Migraciones incrementales en el `upgrade` de [`repository.ts`](src/services/repository.ts); las importaciones pasan por `migrate()` antes de validarse.
 - Al leer, cada registro se valida; los inválidos se omiten (sin borrarse) y se avisa.
 - Si IndexedDB no está disponible, la app usa un repositorio en memoria y muestra un aviso permanente de que los datos se perderán.
 - Importación: tamaño máximo 20 MB, JSON validado completo (esquema, ids únicos, conteos), confirmación explícita y reemplazo en **una sola transacción** (si falla, nada cambia).
@@ -109,8 +118,8 @@ Navegación por teclado, enlace «Saltar al contenido», foco visible, foco movi
 Ejecutado en Windows 11, Node 24.21:
 
 - `npm run typecheck` ✔ · `npm run lint` ✔ · `npm run build` ✔
-- `npm test` ✔ — 107 pruebas (unitarias de dominio, persistencia, import/export e integración de flujos).
-- `npm run test:e2e` ✔ — 12 pruebas (6 flujos × escritorio y móvil Pixel 7) sobre el build de producción.
+- `npm test` ✔ — 120 pruebas (dominio, patrones, datos de demo, persistencia, import/export e integración de flujos, incluido el modo demo).
+- `npm run test:e2e` ✔ — 14 pruebas (7 flujos × escritorio y móvil Pixel 7) sobre el build de producción.
 
 ## Limitaciones conocidas
 

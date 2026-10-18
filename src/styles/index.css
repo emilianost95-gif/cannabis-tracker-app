@@ -3,7 +3,7 @@
 @import 'tailwindcss';
 
 /*
- * Tokens de diseño de Ritmo.
+ * Tokens de diseño de Fumómetro.
  * Tema oscuro único (carbón + grafito), acento lima controlado, cian secundario.
  * Todos los colores de texto cumplen ≥ 4.5:1 sobre sus superficies.
  */
@@ -169,4 +169,24 @@
 }
 .animate-rise {
   animation: rise 220ms var(--ease-out-quick) both;
+}
+
+/* Humito flota despacio. Con movimiento reducido queda quieto (regla global arriba). */
+@keyframes humito-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+.humito-float {
+  animation: humito-float 5s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .humito-float {
+    animation: none;
+  }
 }

@@ -1,5 +1,5 @@
 /**
- * Modelo de datos de Ritmo (versión de esquema 1).
+ * Modelo de datos de Fumómetro (versión de esquema 1).
  *
  * Los esquemas Zod son la única fuente de verdad: los tipos TypeScript se
  * infieren de ellos, y los mismos esquemas validan formularios, lectura de
@@ -285,10 +285,12 @@ export function defaultPreferences(now: Date = new Date()): UserPreferences {
 
 // ---------- Exportación ----------
 
-export const EXPORT_APP_ID = 'ritmo';
+export const EXPORT_APP_ID = 'fumometro';
+/** Copias creadas cuando la app se llamaba «Ritmo»: mismo esquema, se aceptan al importar. */
+export const LEGACY_EXPORT_APP_IDS = ['ritmo'] as const;
 
 export const dataExportMetadata = z.object({
-  app: z.literal(EXPORT_APP_ID),
+  app: z.union([z.literal(EXPORT_APP_ID), z.literal('ritmo')]),
   schemaVersion: z.number().int().min(1),
   exportedAt: isoDateTime,
   counts: z.object({

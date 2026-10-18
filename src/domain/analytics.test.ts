@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   averagePerDay,
+  cumulativeSpending,
+  hourDistribution,
+  methodDistribution,
+  peakHour,
+  previousWeeksAverage,
+  weekdayAverages,
   budgetStatus,
   checkinAssociation,
   comparePeriods,
@@ -168,5 +174,52 @@ describe('inicio del registro', () => {
 
   it('entriesInPeriod usa el día local', () => {
     expect(entriesInPeriod(entries, { from: '2026-10-14', to: '2026-10-14' })).toHaveLength(1);
+  });
+});
+
+describe('patrones', () => {
+  it('distribución por hora local y hora pico', () => {
+    const h = hourDistribution(entries);
+    expect(h[21]).toBe(1);
+    expect(h[23]).toBe(1);
+    expect(h[0]).toBe(1);
+    expect(h.reduce((a, b) => a + b, 0)).toBe(4);
+    expect(peakHour(h)).toBe(0);
+    expect(peakHour(Array(24).fill(0))).toBeNull();
+  });
+
+  it('promedio por día de la semana solo sobre días con datos', () => {
+    // 12 oct 2026 es lunes.
+    const w = weekdayAverages(entries, { from: '2026-10-12', to: '2026-10-25' }, '2026-10-12');
+    expect(w[0]).toEqual({ weekday: 0, days: 2, average: 1 }); // lunes: 2 sesiones en 2 lunes
+    expect(w[2]).toEqual({ weekday: 2, days: 2, average: 0.5 }); // miércoles
+    expect(weekdayAverages(entries, { from: '2026-10-12', to: '2026-10-18' }, null).every((d) => d.average === null)).toBe(true);
+  });
+
+  it('formatos agrupando el resto', () => {
+    const many = [
+      ...entries,
+      testEntry('2026-10-17 10:00', { method: 'edible' }),
+      testEntry('2026-10-17 11:00', { method: 'tincture' }),
+      testEntry('2026-10-17 12:00', { method: 'concentrate' }),
+    ];
+    const d = methodDistribution(many, 2);
+    expect(d[0]).toEqual({ method: 'flower_smoked', count: 3 });
+    expect(d[d.length - 1]).toEqual({ method: 'others', count: 3 });
+    expect(d.reduce((a, s) => a + s.count, 0)).toBe(7);
+  });
+
+  it('gasto acumulado', () => {
+    const c = cumulativeSpending([testExpense('2026-10-12', 1000), testExpense('2026-10-14', 500)], [], { from: '2026-10-12', to: '2026-10-15' }, 'CLP');
+    expect(c.map((d) => d.amountMinor)).toEqual([1000, 1000, 1500, 1500]);
+  });
+
+  it('promedio de semanas anteriores completas', () => {
+    const e = [testEntry('2026-10-05 20:00'), testEntry('2026-10-06 20:00'), testEntry('2026-10-12 20:00'), testEntry('2026-10-13 20:00'), testEntry('2026-10-14 20:00'), testEntry('2026-10-19 20:00')];
+    expect(previousWeeksAverage(e, '2026-10-19', 4, '2026-10-05')).toBe(2.5);
+    // Semana de inicio incompleta (empezó un miércoles): se excluye.
+    expect(previousWeeksAverage(e, '2026-10-19', 4, '2026-10-07')).toBe(3);
+    expect(previousWeeksAverage(e, '2026-10-19', 4, null)).toBeNull();
+    expect(previousWeeksAverage(e, '2026-10-19', 4, '2026-10-19')).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-# Ritmo — Especificación de producto (MVP)
+# Fumómetro — Especificación de producto (MVP)
 
 ## Propósito
 
@@ -15,15 +15,23 @@ Ayudar a personas adultas a entender su relación con el cannabis a partir de su
 | Prudencia estadística | Las asociaciones entre registro personal y consumo solo se muestran con ≥5 días en cada grupo, y siempre con la aclaración de que no implican causa. |
 | Privacidad por defecto | Sin cuenta, sin servidor, sin terceros. Nombre neutro. Explicación honesta de límites (sin cifrado; borrar no alcanza exportaciones ni respaldos). |
 
+## Identidad y tono
+
+Nombre y voz con humor fumón («¿cómo viene la mano?», «días sin humo», «plata en humo»), mascota Humito y un velocímetro con aguja de hoja. El humor nunca empuja a consumir: Humito describe los datos («vas 3, tu promedio era 6,8»), no felicita por fumar ni reta por hacerlo, y no hay logros por cantidad.
+
+## Modo demo
+
+Para mostrar la app sin datos propios: link `/#/demo` o Ajustes → Modo demo. Ocho semanas de datos de ejemplo con una historia de reducción gradual, en almacenamiento separado, con aviso permanente y salida en un toque que restaura los datos reales.
+
 ## Alcance del MVP
 
 ### Incluido
 
-1. **Inicio** — saludo con nombre opcional, fecha, resumen de hoy (sesiones, cantidades por unidad, gasto real), semana en curso (sesiones, días sin consumo de días ya terminados), tendencia últimos 7 días vs. 7 anteriores con fechas explícitas, gráfico de 7 días, gasto del mes vs. presupuesto, objetivos activos y «mi próxima acción» editable.
+1. **Inicio** — velocímetro de la semana (con tu promedio de las 4 semanas completas anteriores y tu meta si existe), Humito comentando tus datos, saludo, fecha, resumen de hoy (sesiones, cantidades por unidad, gasto real), semana en curso (sesiones, días sin consumo de días ya terminados), tendencia últimos 7 días vs. 7 anteriores con fechas explícitas, gráfico de 7 días, gasto del mes vs. presupuesto, objetivos activos y «mi próxima acción» editable.
 2. **Registrar consumo** — fecha/hora, formato, cantidad + unidad (opcional), contexto, ánimo/sueño/estrés previos, gasto (sin importe / pagado en el momento / valor estimado), notas. Validación con mensajes claros, aviso de posible duplicado (mismo formato y cantidad a <10 min), edición, cancelación y eliminación con confirmación.
 3. **Historial** — agrupado por día, filtros por período, formato, contexto (incluido «sin contexto») y búsqueda en notas sin tildes; paginación progresiva; detalle con distinción explícita de «Sin dato».
-4. **Estadísticas** — rangos 7/30/90 días y mes en curso; frecuencia diaria y semanal, promedio por día con datos, días sin consumo, comparación con el período anterior equivalente (rangos impresos), cantidades por unidad, distribución por contexto, gasto real con período anterior y valor estimado aparte, serie del registro personal, asociación prudente y cumplimiento de objetivos por período.
-5. **Gastos** — compras con fecha, importe, moneda, categoría y cantidad; resumen hoy/semana/mes con períodos anteriores; presupuesto semanal y mensual con margen o exceso; gasto por semana (8 semanas).
+4. **Estadísticas («El humo en números»)** — calendario de calor de 12 semanas, hora pico y sesiones por hora, semana tipo, dona de formatos; rangos 7/30/90 días y mes en curso; frecuencia diaria y semanal, promedio por día con datos, días sin consumo, comparación con el período anterior equivalente (rangos impresos), cantidades por unidad, distribución por contexto, gasto real con período anterior y valor estimado aparte, serie del registro personal, asociación prudente y cumplimiento de objetivos por período.
+5. **Gastos** — gasto acumulado del mes contra el presupuesto; compras con fecha, importe, moneda, categoría y cantidad; resumen hoy/semana/mes con períodos anteriores; presupuesto semanal y mensual con margen o exceso; gasto por semana (8 semanas).
 6. **Objetivos** — seis tipos con métrica, período y criterio propios; crear, editar, pausar/reanudar (las semanas completamente en pausa no se evalúan), eliminar; historial por período.
 7. **Registro personal** — ánimo, estrés, sueño, deseo de consumir, motivo, observaciones; independiente del consumo; editable y eliminable.
 8. **Ajustes y datos** — preferencias, campos visibles, precios de referencia por unidad, estado del almacenamiento y solicitud de persistencia, exportar JSON/CSV, importar con validación y confirmación, eliminar todo con doble confirmación, política de datos.
@@ -62,7 +70,7 @@ Semanas parciales (inicio o fin a mitad de semana) consideran solo los días den
 
 ## Identidad visual
 
-Fondo carbón (#0b0c0e), superficies grafito escalonadas, bordes finos, radios moderados, acento lima controlado (#b6f36a) y cian secundario (#6fd6ec) para progreso. Inter para interfaz y números tabulares; Space Grotesk solo en títulos. Sin gradientes en superficies (solo un halo muy tenue de fondo), sin glow, iconografía Lucide, microanimaciones de ≤220 ms desactivadas con `prefers-reduced-motion`.
+Logo: velocímetro con aguja de hoja y voluta de humo. Mascota: Humito. Fondo carbón (#0b0c0e), superficies grafito escalonadas, bordes finos, radios moderados, acento lima controlado (#b6f36a) y cian secundario (#6fd6ec) para progreso. Inter para interfaz y números tabulares; Space Grotesk solo en títulos. Sin gradientes en superficies (solo un halo muy tenue de fondo), sin glow, iconografía Lucide, microanimaciones de ≤220 ms desactivadas con `prefers-reduced-motion`.
 
 ## Métricas de éxito sugeridas (para validar con usuarios, no se recolectan en la app)
 

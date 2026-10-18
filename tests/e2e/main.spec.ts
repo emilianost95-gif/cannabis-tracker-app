@@ -13,7 +13,7 @@ async function primaryNav(page: Page, name: string) {
 
 async function register(page: Page, opts: { qty?: string; notes?: string } = {}) {
   await primaryNav(page, 'Registrar');
-  await expect(page.getByRole('heading', { name: 'Registrar consumo' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Anotar sesión' })).toBeVisible();
   if (opts.qty) await page.getByLabel('Cantidad').fill(opts.qty);
   if (opts.notes) await page.getByLabel('Notas').fill(opts.notes);
   await page.getByRole('button', { name: 'Guardar registro' }).click();
@@ -22,7 +22,7 @@ async function register(page: Page, opts: { qty?: string; notes?: string } = {})
 
 test('registrar, recargar, editar y eliminar', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('Tu registro empieza acá')).toBeVisible();
+  await expect(page.getByText('Todavía no hay humo por acá')).toBeVisible();
 
   await register(page, { qty: '0,5', notes: 'e2e original' });
   const today = page.getByRole('region', { name: 'Hoy' });
@@ -45,9 +45,9 @@ test('registrar, recargar, editar y eliminar', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Eliminar' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Eliminar registro' }).click();
-  await expect(page.getByText('Todavía no hay registros')).toBeVisible();
+  await expect(page.getByText('Todavía no hay humo registrado')).toBeVisible();
   await page.reload();
-  await expect(page.getByText('Todavía no hay registros')).toBeVisible();
+  await expect(page.getByText('Todavía no hay humo registrado')).toBeVisible();
 });
 
 test('estadísticas reflejan los registros y no mezclan unidades', async ({ page }) => {
@@ -74,14 +74,14 @@ test('exporta JSON y CSV, rechaza importación inválida sin perder datos', asyn
   await page.goto('/#/ajustes');
 
   const [json] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Copia completa (JSON)' }).click()]);
-  expect(json.suggestedFilename()).toMatch(/^ritmo-copia-\d{4}-\d{2}-\d{2}\.json$/);
+  expect(json.suggestedFilename()).toMatch(/^fumometro-copia-\d{4}-\d{2}-\d{2}\.json$/);
   const content = JSON.parse(await (await json.createReadStream()).toArray().then((c) => Buffer.concat(c).toString('utf8')));
   expect(content.meta.counts.consumption).toBe(1);
 
   const [csv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Historial (CSV)' }).click()]);
   expect(csv.suggestedFilename()).toMatch(/\.csv$/);
 
-  await page.getByTestId('import-file').setInputFiles({ name: 'mala.json', mimeType: 'application/json', buffer: Buffer.from('{"meta":{"app":"ritmo","schemaVersion":1}}') });
+  await page.getByTestId('import-file').setInputFiles({ name: 'mala.json', mimeType: 'application/json', buffer: Buffer.from('{"meta":{"app":"fumometro","schemaVersion":1}}') });
   await expect(page.getByText('El archivo tiene datos inválidos. No se importó nada.')).toBeVisible();
 
   // Importar la copia válida (reemplazo con confirmación).
@@ -105,7 +105,7 @@ test('eliminar todos los datos', async ({ page }) => {
   await expect(page.getByText('Se eliminaron todos los datos')).toBeVisible();
   await page.reload();
   await page.goto('/');
-  await expect(page.getByText('Tu registro empieza acá')).toBeVisible();
+  await expect(page.getByText('Todavía no hay humo por acá')).toBeVisible();
 });
 
 test('sin desborde horizontal en ninguna pantalla', async ({ page }) => {
@@ -129,4 +129,19 @@ test('las URLs nunca contienen datos del registro', async ({ page }) => {
   await page.getByRole('link', { name: /ver detalle/ }).click();
   expect(page.url()).toMatch(/#\/historial\/[0-9a-f-]{36}$/);
   expect(urls.every((u) => !u.includes('secreto') && new URL(u).origin === 'http://localhost:4317')).toBe(true);
+});
+
+test('el link de la demo abre datos de ejemplo y se ve bien en todas las pantallas', async ({ page }) => {
+  await page.goto('/#/demo');
+  await expect(page.getByText(/Todo lo que ves son datos de ejemplo/)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Fumómetro de la semana' })).toBeVisible();
+  for (const r of ROUTES) {
+    await page.goto(r);
+    await expect(page.getByText(/Todo lo que ves son datos de ejemplo/)).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `desborde en ${r}`).toBeLessThanOrEqual(0);
+  }
+  await page.getByRole('button', { name: 'Salir de la demo' }).first().click();
+  await page.goto('/');
+  await expect(page.getByText('Todavía no hay humo por acá')).toBeVisible();
 });

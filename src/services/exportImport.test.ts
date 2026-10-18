@@ -16,7 +16,7 @@ describe('exportación JSON', () => {
   it('incluye metadatos y conteos', () => {
     const f = buildExport(data, new Date('2026-10-18T15:00:00.000Z'));
     expect(f.meta).toEqual({
-      app: 'ritmo',
+      app: 'fumometro',
       schemaVersion: 1,
       exportedAt: '2026-10-18T15:00:00.000Z',
       counts: { consumption: 2, checkins: 1, expenses: 1, goals: 1 },
@@ -98,5 +98,13 @@ describe('CSV', () => {
     expect(lines[2]).toContain('2500.50,ARS,pagado');
     expect(lines[2]).toContain('"con ""amigos"", tranquilo"');
     expect(lines[2]).toContain('2026-10-12 21:00');
+  });
+});
+
+describe('compatibilidad', () => {
+  it('acepta copias de cuando la app se llamaba «Ritmo»', () => {
+    const f = JSON.parse(exportJson(data));
+    f.meta.app = 'ritmo';
+    expect(parseImport(JSON.stringify(f)).ok).toBe(true);
   });
 });

@@ -43,7 +43,7 @@ export function GoalsPage() {
     <>
       <PageHeader
         title="Objetivos"
-        description="Opcionales y personales. Cada uno tiene su propia forma de medirse. No hay puntajes ni rankings."
+        description="Si querés bajar un cambio, armá tus propias metas. Opcionales, sin puntajes ni rankings: cada una se mide a su manera."
         actions={
           editing === null && (
             <Button variant="primary" size="sm" icon={Plus} onClick={() => setEditing('new')}>

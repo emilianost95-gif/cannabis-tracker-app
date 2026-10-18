@@ -44,11 +44,15 @@ export interface Repository {
   clearAll(): Promise<void>;
 }
 
-export const DB_NAME = 'ritmo';
+export const DB_NAME = 'fumometro';
+/** Base separada para el modo demo: nunca se mezcla con los datos reales. */
+export const DEMO_DB_NAME = 'fumometro-demo';
+
+export type DataMode = 'real' | 'demo';
 /** Versión de la base IndexedDB. Subirla al cambiar stores o índices. */
 export const DB_VERSION = 1;
 
-interface RitmoDB extends DBSchema {
+interface AppDB extends DBSchema {
   consumption: { key: string; value: ConsumptionEntry; indexes: { occurredAt: string } };
   checkins: { key: string; value: MoodCheckIn; indexes: { occurredAt: string } };
   expenses: { key: string; value: ExpenseEntry; indexes: { date: string } };
@@ -77,10 +81,10 @@ function validateList<K extends CollectionName>(k: K, raw: unknown[]): { items: 
 
 export class IndexedDbRepository implements Repository {
   readonly kind = 'indexeddb' as const;
-  private constructor(private db: IDBPDatabase<RitmoDB>) {}
+  private constructor(private db: IDBPDatabase<AppDB>) {}
 
-  static async open(): Promise<IndexedDbRepository> {
-    const db = await openDB<RitmoDB>(DB_NAME, DB_VERSION, {
+  static async open(name: string = DB_NAME): Promise<IndexedDbRepository> {
+    const db = await openDB<AppDB>(name, DB_VERSION, {
       upgrade(database, oldVersion) {
         // Migraciones incrementales: cada bloque lleva la base de la versión N a N+1.
         if (oldVersion < 1) {
@@ -197,12 +201,12 @@ export class MemoryRepository implements Repository {
   }
 }
 
-export async function openRepository(): Promise<{ repo: Repository; error: string | null }> {
+export async function openRepository(mode: DataMode = 'real'): Promise<{ repo: Repository; error: string | null }> {
   if (typeof indexedDB === 'undefined') {
     return { repo: new MemoryRepository(), error: 'Este navegador no ofrece almacenamiento local (IndexedDB).' };
   }
   try {
-    return { repo: await IndexedDbRepository.open(), error: null };
+    return { repo: await IndexedDbRepository.open(mode === 'demo' ? DEMO_DB_NAME : DB_NAME), error: null };
   } catch (err) {
     const name = err instanceof Error ? err.name : 'Error';
     return {

@@ -18,9 +18,9 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Ritmo — registro personal',
-        short_name: 'Ritmo',
-        description: 'Registro personal y privado de hábitos. Tus datos quedan en este dispositivo.',
+        name: 'Fumómetro',
+        short_name: 'Fumómetro',
+        description: 'Medí cuánto, cuándo y cuánta plata se va en humo. Privado y sin cuenta.',
         lang: 'es',
         start_url: '/',
         scope: '/',

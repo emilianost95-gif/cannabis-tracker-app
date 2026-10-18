@@ -35,7 +35,7 @@ async function go(user: ReturnType<typeof userEvent.setup>, name: string) {
 
 async function registerEntry(user: ReturnType<typeof userEvent.setup>, opts: { qty?: string; notes?: string } = {}) {
   await go(user, 'Registrar');
-  await screen.findByRole('heading', { name: 'Registrar consumo' });
+  await screen.findByRole('heading', { name: 'Anotar sesión' });
   if (opts.qty) await user.type(screen.getByLabelText(/Cantidad/), opts.qty);
   if (opts.notes) await user.type(screen.getByLabelText(/Notas/), opts.notes);
   await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
@@ -51,14 +51,14 @@ afterEach(() => {
 describe('flujo principal', () => {
   it('muestra estados vacíos sin inventar datos', async () => {
     renderApp('/');
-    expect(await screen.findByText('Tu registro empieza acá')).toBeInTheDocument();
+    expect(await screen.findByText('Todavía no hay humo por acá')).toBeInTheDocument();
     await go(userEvent.setup(), 'Estadísticas');
     expect(await screen.findByText('Aún no hay datos para analizar')).toBeInTheDocument();
   });
 
   it('registra un consumo, actualiza el panel y persiste al recargar', async () => {
     const { user, unmount } = renderApp('/');
-    await screen.findByText('Tu registro empieza acá');
+    await screen.findByText('Todavía no hay humo por acá');
     await registerEntry(user, { qty: '0,5', notes: 'prueba integración' });
 
     // Vuelve al inicio con el panel actualizado.
@@ -75,7 +75,7 @@ describe('flujo principal', () => {
 
   it('edita y elimina un registro; el historial refleja los cambios', async () => {
     const { user } = renderApp('/');
-    await screen.findByText('Tu registro empieza acá');
+    await screen.findByText('Todavía no hay humo por acá');
     await registerEntry(user, { notes: 'original' });
     await screen.findByRole('region', { name: 'Hoy' });
 
@@ -96,12 +96,12 @@ describe('flujo principal', () => {
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
     const dialog = await screen.findByRole('dialog', { name: '¿Eliminar este registro?' });
     await user.click(within(dialog).getByRole('button', { name: 'Eliminar registro' }));
-    expect(await screen.findByText('Todavía no hay registros')).toBeInTheDocument();
+    expect(await screen.findByText('Todavía no hay humo registrado')).toBeInTheDocument();
   });
 
   it('cancelar la eliminación no borra nada', async () => {
     const { user } = renderApp('/');
-    await screen.findByText('Tu registro empieza acá');
+    await screen.findByText('Todavía no hay humo por acá');
     await registerEntry(user, { notes: 'se queda' });
     await screen.findByRole('region', { name: 'Hoy' });
     await go(user, 'Historial');
@@ -114,7 +114,7 @@ describe('flujo principal', () => {
 
   it('valida el formulario sin exigir campos emocionales', async () => {
     const { user } = renderApp('/registrar');
-    await screen.findByRole('heading', { name: 'Registrar consumo' });
+    await screen.findByRole('heading', { name: 'Anotar sesión' });
     await user.type(screen.getByLabelText(/Cantidad/), 'mucho');
     await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
     expect(await screen.findByText(/Ingresá un número mayor que cero/)).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe('flujo principal', () => {
 
   it('avisa de posibles duplicados antes de guardar', async () => {
     const { user } = renderApp('/');
-    await screen.findByText('Tu registro empieza acá');
+    await screen.findByText('Todavía no hay humo por acá');
     await registerEntry(user, { qty: '1' });
     await screen.findByRole('region', { name: 'Hoy' });
     await registerEntry(user, { qty: '1' });
@@ -135,7 +135,7 @@ describe('flujo principal', () => {
 
   it('las estadísticas se actualizan con los registros', async () => {
     const { user } = renderApp('/');
-    await screen.findByText('Tu registro empieza acá');
+    await screen.findByText('Todavía no hay humo por acá');
     await registerEntry(user, { qty: '0,25' });
     await screen.findByRole('region', { name: 'Hoy' });
     await registerEntry(user, { qty: '3' }); // distinto: no es duplicado (cantidad diferente)
@@ -163,14 +163,14 @@ describe('datos: exportar, importar y eliminar', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
     const { user } = renderApp('/');
-    await screen.findByText('Tu registro empieza acá');
+    await screen.findByText('Todavía no hay humo por acá');
     await registerEntry(user, { notes: 'para exportar' });
     await screen.findByRole('region', { name: 'Hoy' });
     await go(user, 'Ajustes y datos');
     await user.click(await screen.findByRole('button', { name: 'Copia completa (JSON)' }));
     expect(captured).not.toBeNull();
     const json = JSON.parse(await readFileText(captured!));
-    expect(json.meta).toMatchObject({ app: 'ritmo', schemaVersion: 1, counts: { consumption: 1 } });
+    expect(json.meta).toMatchObject({ app: 'fumometro', schemaVersion: 1, counts: { consumption: 1 } });
     expect(json.consumption[0].notes).toBe('para exportar');
   });
 
@@ -227,7 +227,7 @@ describe('datos: exportar, importar y eliminar', () => {
 
     unmount();
     renderApp('/historial');
-    expect(await screen.findByText('Todavía no hay registros')).toBeInTheDocument();
+    expect(await screen.findByText('Todavía no hay humo registrado')).toBeInTheDocument();
   });
 });
 
@@ -258,5 +258,43 @@ describe('gastos y objetivos', () => {
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Eliminar objetivo' }));
     expect(await screen.findByText('Sin objetivos por ahora')).toBeInTheDocument();
+  });
+});
+
+describe('modo demo', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('el link /demo muestra datos de ejemplo marcados y no toca los datos reales', async () => {
+    const repo = await IndexedDbRepository.open();
+    await repo.put('consumption', testEntry('2026-10-01 20:00', { notes: 'mi dato real' }));
+
+    const { user } = renderApp('/demo');
+    expect(await screen.findByText(/Todo lo que ves son datos de ejemplo/)).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Fumómetro de la semana' })).toBeInTheDocument();
+
+    // El historial muestra la demo, no el dato real.
+    await go(user, 'Historial');
+    await screen.findByRole('heading', { name: 'Historial' });
+    expect(screen.queryByText('mi dato real')).not.toBeInTheDocument();
+
+    // La base real sigue igual.
+    expect((await repo.load()).data.consumption.map((e) => e.notes)).toEqual(['mi dato real']);
+
+    // Salir vuelve a los datos reales y quita el aviso.
+    await user.click(screen.getByRole('button', { name: 'Salir de la demo' }));
+    expect(await screen.findByText('mi dato real')).toBeInTheDocument();
+    expect(screen.queryByText(/Todo lo que ves son datos de ejemplo/)).not.toBeInTheDocument();
+  });
+
+  it('se puede abrir desde el inicio vacío', async () => {
+    const { user } = renderApp('/');
+    await screen.findByText('Todavía no hay humo por acá');
+    await user.click(screen.getByRole('link', { name: 'Ver la demo' }));
+    expect(await screen.findByText(/Todo lo que ves son datos de ejemplo/)).toBeInTheDocument();
+    await go(user, 'Estadísticas');
+    expect(await screen.findByRole('region', { name: 'Calendario de humo (últimas 12 semanas)' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Cómo lo consumís' })).toBeInTheDocument();
   });
 });

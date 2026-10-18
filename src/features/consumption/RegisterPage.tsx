@@ -167,8 +167,8 @@ function ConsumptionForm({ existing }: { existing?: ConsumptionEntry }) {
   return (
     <>
       <PageHeader
-        title={existing ? 'Editar registro' : 'Registrar consumo'}
-        description={existing ? `Registrado el ${formatDateTime(existing.occurredAt)}` : 'Solo la fecha y el formato son necesarios. Todo lo demás es opcional.'}
+        title={existing ? 'Editar sesión' : 'Anotar sesión'}
+        description={existing ? `Registrado el ${formatDateTime(existing.occurredAt)}` : 'Solo la fecha y el formato son obligatorios. Lo demás, si pinta.'}
       />
       <form onSubmit={onSubmit} noValidate className="grid gap-5 lg:grid-cols-[1fr_20rem] lg:items-start">
         <div className="card grid gap-5 p-4 sm:p-6">

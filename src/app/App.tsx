@@ -10,6 +10,7 @@ import { GoalsPage } from '@/features/goals/GoalsPage';
 import { CheckinsPage } from '@/features/checkins/CheckinsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { NotFoundPage } from './NotFoundPage';
+import { DemoRoute } from './DemoRoute';
 
 export function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ export function AppRoutes() {
         <Route path="objetivos" element={<GoalsPage />} />
         <Route path="diario" element={<CheckinsPage />} />
         <Route path="ajustes" element={<SettingsPage />} />
+        <Route path="demo" element={<DemoRoute />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

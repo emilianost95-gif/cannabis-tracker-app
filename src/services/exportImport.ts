@@ -3,7 +3,7 @@
  * La importación nunca toca los datos existentes hasta que el archivo
  * completo pasó la validación y la persona lo confirmó.
  */
-import { EXPORT_APP_ID, SCHEMA_VERSION, exportFile, type AppData, type ExportFile } from '@/domain/model';
+import { EXPORT_APP_ID, LEGACY_EXPORT_APP_IDS, SCHEMA_VERSION, exportFile, type AppData, type ExportFile } from '@/domain/model';
 import { t } from '@/i18n';
 import { isoToLocalInput } from '@/utils/dates';
 import { MINOR_DIGITS } from '@/domain/money';
@@ -47,7 +47,7 @@ function migrate(raw: Record<string, unknown>): Record<string, unknown> {
 
 export function parseImport(text: string): ImportResult {
   if (text.length > MAX_IMPORT_BYTES) {
-    return { ok: false, error: 'El archivo es demasiado grande para ser una copia de Ritmo.', details: [] };
+    return { ok: false, error: 'El archivo es demasiado grande para ser una copia de Fumómetro.', details: [] };
   }
   let raw: unknown;
   try {
@@ -56,11 +56,12 @@ export function parseImport(text: string): ImportResult {
     return { ok: false, error: 'El archivo no es un JSON válido o está dañado.', details: [] };
   }
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-    return { ok: false, error: 'El archivo no tiene el formato de una copia de Ritmo.', details: [] };
+    return { ok: false, error: 'El archivo no tiene el formato de una copia de Fumómetro.', details: [] };
   }
   const meta = (raw as { meta?: { app?: unknown; schemaVersion?: unknown } }).meta;
-  if (!meta || meta.app !== EXPORT_APP_ID) {
-    return { ok: false, error: 'El archivo no es una copia de seguridad de Ritmo.', details: [] };
+  const knownApp = meta && (meta.app === EXPORT_APP_ID || (LEGACY_EXPORT_APP_IDS as readonly unknown[]).includes(meta.app));
+  if (!meta || !knownApp) {
+    return { ok: false, error: 'El archivo no es una copia de seguridad de Fumómetro.', details: [] };
   }
   if (typeof meta.schemaVersion === 'number' && meta.schemaVersion > SCHEMA_VERSION) {
     return {

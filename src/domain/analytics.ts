@@ -7,8 +7,10 @@ import { CONTEXTS } from './model';
 import { addToTotals, type MoneyTotals } from './money';
 import { sumByUnit, type QuantityTotals } from './quantity';
 import {
+  addDaysKey,
   dayKeyOfIso,
   eachDayKey,
+  weekOf,
   inPeriod,
   weeksIn,
   type DayKey,
@@ -322,4 +324,86 @@ export function dailyCheckinSeries(
 export function averagePerDay(count: number, trackedDays: number): number {
   if (trackedDays <= 0) return 0;
   return Math.round((count / trackedDays) * 10) / 10;
+}
+
+// ---------- Patrones (gráficos adicionales) ----------
+
+/** Sesiones por hora del día local (0–23). */
+export function hourDistribution(entries: ConsumptionEntry[]): number[] {
+  const out = Array.from({ length: 24 }, () => 0);
+  for (const e of entries) out[new Date(e.occurredAt).getHours()]! += 1;
+  return out;
+}
+
+/** Hora con más sesiones, o null si no hay datos. Empates: la más temprana. */
+export function peakHour(hours: number[]): number | null {
+  let best = -1;
+  let max = 0;
+  hours.forEach((n, h) => {
+    if (n > max) {
+      max = n;
+      best = h;
+    }
+  });
+  return best < 0 ? null : best;
+}
+
+/**
+ * Promedio de sesiones por día de la semana (lunes primero), contando solo los
+ * días con datos de ese día de la semana dentro del período.
+ */
+export function weekdayAverages(entries: ConsumptionEntry[], p: Period, start: DayKey | null): { weekday: number; average: number | null; days: number }[] {
+  const byDay = sessionsByDay(entries);
+  const acc = Array.from({ length: 7 }, () => ({ sum: 0, days: 0 }));
+  for (const d of eachDayKey(p)) {
+    if (start === null || d < start) continue;
+    const wd = (new Date(`${d}T12:00:00`).getDay() + 6) % 7; // 0 = lunes
+    acc[wd]!.sum += byDay.get(d) ?? 0;
+    acc[wd]!.days += 1;
+  }
+  return acc.map((a, weekday) => ({ weekday, days: a.days, average: a.days ? Math.round((a.sum / a.days) * 10) / 10 : null }));
+}
+
+export interface MethodSlice {
+  method: ConsumptionEntry['method'] | 'others';
+  count: number;
+}
+
+/** Formatos más usados: los `top` primeros y el resto agrupado en "others". */
+export function methodDistribution(entries: ConsumptionEntry[], top = 4): MethodSlice[] {
+  const counts = new Map<ConsumptionEntry['method'], number>();
+  for (const e of entries) counts.set(e.method, (counts.get(e.method) ?? 0) + 1);
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const head: MethodSlice[] = sorted.slice(0, top).map(([method, count]) => ({ method, count }));
+  const rest = sorted.slice(top).reduce((a, [, c]) => a + c, 0);
+  return rest > 0 ? [...head, { method: 'others', count: rest }] : head;
+}
+
+/** Gasto real acumulado día a día en una moneda. */
+export function cumulativeSpending(
+  expenses: ExpenseEntry[],
+  consumption: ConsumptionEntry[],
+  p: Period,
+  c: Currency,
+): { day: DayKey; amountMinor: number }[] {
+  let acc = 0;
+  return dailySpending(expenses, consumption, p, c).map((d) => ({ day: d.day, amountMinor: (acc += d.amountMinor) }));
+}
+
+/** Promedio semanal de sesiones en las `weeks` semanas completas anteriores a la actual. */
+export function previousWeeksAverage(entries: ConsumptionEntry[], currentWeekStart: DayKey, weeks: number, start: DayKey | null): number | null {
+  if (start === null) return null;
+  const from = addDaysKey(currentWeekStart, -7 * weeks);
+  // Solo semanas completamente registradas.
+  const usable = weeksIn({ from: from < start ? weekStartKeyAfter(start) : from, to: addDaysKey(currentWeekStart, -1) }).filter(
+    (w) => w.from >= start && w.to < currentWeekStart,
+  );
+  if (usable.length === 0) return null;
+  const total = usable.reduce((a, w) => a + entriesInPeriod(entries, w).length, 0);
+  return Math.round((total / usable.length) * 10) / 10;
+}
+
+function weekStartKeyAfter(d: DayKey): DayKey {
+  const ws = weekOf(d).from;
+  return ws === d ? d : addDaysKey(ws, 7);
 }

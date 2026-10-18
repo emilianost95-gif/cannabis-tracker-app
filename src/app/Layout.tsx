@@ -7,6 +7,7 @@ import {
   House,
   NotebookPen,
   Settings,
+  FlaskConical,
   ShieldCheck,
   Target,
   TriangleAlert,
@@ -14,7 +15,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useData } from '@/state/DataContext';
-import { Banner, Spinner, cx } from '@/components/ui';
+import { Banner, Button, Spinner, cx } from '@/components/ui';
+import { Logo } from '@/components/brand';
+import { useToast } from '@/components/Toast';
 
 interface NavItem {
   to: string;
@@ -35,25 +38,6 @@ const SECONDARY: NavItem[] = [
   { to: '/gastos', label: 'Gastos', icon: Wallet },
   { to: '/ajustes', label: 'Ajustes y datos', icon: Settings },
 ];
-
-function Logo() {
-  return (
-    <span className="flex items-center gap-2.5">
-      <svg viewBox="0 0 64 64" className="size-8" aria-hidden>
-        <rect width="64" height="64" rx="14" fill="#181b1f" stroke="#2a2e34" />
-        <path
-          d="M12 38h8l5-14 8 26 6-18 4 6h9"
-          fill="none"
-          stroke="#b6f36a"
-          strokeWidth="4.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span className="font-display text-lg font-semibold tracking-tight text-fg">Ritmo</span>
-    </span>
-  );
-}
 
 function SideLink({ item }: { item: NavItem }) {
   const Icon = item.icon;
@@ -79,7 +63,8 @@ function SideLink({ item }: { item: NavItem }) {
 }
 
 export function Layout() {
-  const { status, storage } = useData();
+  const { status, storage, mode, exitDemo } = useData();
+  const toast = useToast();
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const first = useRef(true);
@@ -157,6 +142,26 @@ export function Layout() {
           tabIndex={-1}
           className="mx-auto w-full max-w-5xl px-4 pb-[calc(var(--nav-h)+env(safe-area-inset-bottom)+2rem)] pt-5 outline-none sm:px-6 lg:px-10 lg:pb-12 lg:pt-10"
         >
+          {mode === 'demo' && (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[rgb(111_214_236/0.35)] bg-cyan-soft px-3 py-2.5 text-sm" role="status">
+              <span className="flex items-start gap-2 text-fg">
+                <FlaskConical aria-hidden size={18} className="mt-0.5 shrink-0 text-cyan" />
+                <span>
+                  <strong className="font-semibold">Modo demo.</strong> Todo lo que ves son datos de ejemplo inventados, guardados aparte de
+                  los tuyos. Probá lo que quieras.
+                </span>
+              </span>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  await exitDemo();
+                  toast('Saliste de la demo. Estos son tus datos reales.');
+                }}
+              >
+                Salir de la demo
+              </Button>
+            </div>
+          )}
           {(storage.error || storage.kind === 'memory') && (
             <div className="mb-5">
               <Banner tone="danger" icon={TriangleAlert} role="alert">

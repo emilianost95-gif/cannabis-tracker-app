@@ -89,7 +89,7 @@ export function HistoryPage() {
         <div className="card">
           <EmptyState
             icon={History}
-            title="Todavía no hay registros"
+            title="Todavía no hay humo registrado"
             action={
               <LinkButton to="/registrar" variant="primary" icon={Plus}>
                 Registrar consumo

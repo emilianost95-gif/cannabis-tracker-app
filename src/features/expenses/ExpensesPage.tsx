@@ -6,7 +6,8 @@ import { storageErrorMessage, useToast } from '@/components/Toast';
 import { Button, Card, EmptyState, Field, PageHeader, Stat, cx } from '@/components/ui';
 import { ConfirmDialog } from '@/components/Dialog';
 import { BarSeries } from '@/components/charts';
-import { budgetStatus, realSpending, estimatedUsage, weeklySpending, type BudgetStatus } from '@/domain/analytics';
+import { budgetStatus, cumulativeSpending, realSpending, estimatedUsage, weeklySpending, type BudgetStatus } from '@/domain/analytics';
+import { CumulativeArea } from '@/components/patternCharts';
 import {
   CURRENCIES,
   EXPENSE_CATEGORIES,
@@ -50,6 +51,7 @@ export function ExpensesPage() {
       prevMonthSpend: realSpending(data.expenses, data.consumption, prevMonth),
       monthEstimated: estimatedUsage(data.consumption, { from: month.from, to: today }),
       weekly: weeklySpending(data.expenses, data.consumption, last8, cur),
+      cumulative: cumulativeSpending(data.expenses, data.consumption, { from: month.from, to: today }, cur),
     };
   }, [data, today, cur]);
 
@@ -112,6 +114,16 @@ export function ExpensesPage() {
             <BudgetRow label="Mensual" budget={budgets.monthly} spent={totalIn(s.monthSpend, cur)} currency={cur} />
           </div>
           <BudgetForm />
+        </Card>
+
+        <Card title="Plata en humo este mes (acumulado)" className="lg:col-span-3">
+          <CumulativeArea
+            caption={`Gasto real acumulado del mes en ${cur}`}
+            budget={budgets.monthly?.currency === cur ? budgets.monthly.amountMinor : null}
+            format={(v) => formatMoney(v, cur)}
+            points={s.cumulative.map((d) => ({ label: formatShortDay(d.day), fullLabel: formatShortDay(d.day), value: d.amountMinor }))}
+          />
+          {!budgets.monthly && <p className="mt-2 text-xs text-fg-subtle">Definí un presupuesto mensual para ver la línea de referencia.</p>}
         </Card>
 
         <Card title="Gasto real por semana (últimas 8)" className="lg:col-span-2">

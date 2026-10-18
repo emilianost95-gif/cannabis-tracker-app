@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Download, FileJson, FileSpreadsheet, HardDrive, Plus, Save, ShieldCheck, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
+import { Download, FileJson, FileSpreadsheet, FlaskConical, HardDrive, Link2, Plus, RotateCcw, Save, ShieldCheck, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
 import { useData } from '@/state/DataContext';
 import { storageErrorMessage, useToast } from '@/components/Toast';
 import { Banner, Button, Card, Field, PageHeader } from '@/components/ui';
@@ -37,6 +37,7 @@ export function SettingsPage() {
     <>
       <PageHeader title="Ajustes y datos" description="Preferencias, copias de seguridad y control total de tus datos locales." />
       <div className="grid gap-4 lg:grid-cols-2">
+        <DemoCard />
         <PreferencesCard />
         <FieldsCard />
         <ReferencePricesCard />
@@ -45,6 +46,51 @@ export function SettingsPage() {
         <PrivacyCard />
       </div>
     </>
+  );
+}
+
+function DemoCard() {
+  const { mode, enterDemo, exitDemo, resetDemo } = useData();
+  const toast = useToast();
+  const link = `${window.location.origin}${window.location.pathname}#/demo`;
+  return (
+    <Card title="Modo demo" icon={FlaskConical} className="lg:col-span-2">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="max-w-prose text-sm text-fg-muted">
+          {mode === 'demo'
+            ? 'Estás viendo 8 semanas de datos de ejemplo inventados. Tus datos reales siguen intactos y vuelven cuando salgas.'
+            : 'Mostrale la app a tus amigos con 8 semanas de datos de ejemplo. Se guardan aparte: tus datos reales no se tocan ni se muestran.'}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {mode === 'demo' ? (
+            <>
+              <Button size="sm" icon={RotateCcw} onClick={() => void resetDemo().then(() => toast('Demo reiniciada'))}>
+                Reiniciar demo
+              </Button>
+              <Button size="sm" variant="primary" onClick={() => void exitDemo().then(() => toast('Volviste a tus datos reales'))}>
+                Salir de la demo
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant="primary" icon={FlaskConical} onClick={() => void enterDemo().then(() => toast('Modo demo activado'))}>
+              Abrir la demo
+            </Button>
+          )}
+          <Button
+            size="sm"
+            icon={Link2}
+            onClick={() => {
+              navigator.clipboard
+                ?.writeText(link)
+                .then(() => toast('Link de la demo copiado'))
+                .catch(() => toast(`Copiá este link: ${link}`));
+            }}
+          >
+            Copiar link de la demo
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -386,7 +432,7 @@ function DataCard() {
           <Button
             icon={FileJson}
             onClick={() => {
-              downloadText(`ritmo-copia-${stamp}.json`, exportJson(data), 'application/json');
+              downloadText(`fumometro-copia-${stamp}.json`, exportJson(data), 'application/json');
               toast('Copia JSON generada');
             }}
           >
@@ -396,7 +442,7 @@ function DataCard() {
             icon={FileSpreadsheet}
             disabled={data.consumption.length === 0}
             onClick={() => {
-              downloadText(`ritmo-historial-${stamp}.csv`, consumptionCsv(data), 'text/csv;charset=utf-8');
+              downloadText(`fumometro-historial-${stamp}.csv`, consumptionCsv(data), 'text/csv;charset=utf-8');
               toast('Historial CSV generado');
             }}
           >
